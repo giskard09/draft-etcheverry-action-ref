@@ -1,0 +1,113 @@
+{
+  "suite": "jcs-comparison-semantics-v1",
+  "spec": "RFC 8785 (JSON Canonicalization Scheme)",
+  "derivation": "jcs = RFC 8785 canonicalization of preimage, encoded UTF-8. digest = lowercase hex SHA-256 over those bytes.",
+  "author_set": "trail (did:trail) - @trailprotocol/core, cross-checked against the canonicalize package. Independent of the AgentGraph set.",
+  "failure_modes": {
+    "fails-closed": "Different canonical bytes for one subject. A relying party sees a conflict that is not there.",
+    "fails-open": "Identical canonical bytes for two subjects. A relying party sees a match that is not there, and nothing in the artefacts indicates it."
+  },
+  "purpose": "Preimages that denote the same subject but produce different canonical bytes, and two distinct subjects that produce the same canonical bytes. Both follow from documented RFC 8785 properties rather than from implementation error.",
+  "anchors": [
+    {
+      "name": "rfc8785-3.2.4-utf8-bytes",
+      "note": "Input from RFC 8785 section 3.2.2; expected value is the UTF-8 hex listing published in section 3.2.4. Transcribed from the RFC, not generated.",
+      "rfc_input_literal": "{\"numbers\":[333333333.33333329,1E30,4.50,2e-3,0.000000000000000000000000001],\"string\":\"\\u20ac$\\u000F\\u000aA'\\u0042\\u0022\\u005c\\\\\\\"\\/\",\"literals\":[null,true,false]}",
+      "rfc_input_note": "The preimage below is the parsed form. JSON cannot round-trip the RFC number literals (333333333.33333329, 1E30, 2e-3) because they denote the same IEEE 754 doubles as their serialized forms, so the source text is retained above as a string.",
+      "preimage": {
+        "numbers": [
+          333333333.3333333,
+          1e+30,
+          4.5,
+          0.002,
+          1e-27
+        ],
+        "string": "€$\u000f\nA'B\"\\\\\"/",
+        "literals": [
+          null,
+          true,
+          false
+        ]
+      },
+      "jcs": "{\"literals\":[null,true,false],\"numbers\":[333333333.3333333,1e+30,4.5,0.002,1e-27],\"string\":\"€$\\u000f\\nA'B\\\"\\\\\\\\\\\"/\"}",
+      "utf8_hex": "7b226c69746572616c73223a5b6e756c6c2c747275652c66616c73655d2c226e756d62657273223a5b3333333333333333332e333333333333332c31652b33302c342e352c302e3030322c31652d32375d2c22737472696e67223a22e282ac245c75303030665c6e4127425c225c5c5c5c5c222f227d",
+      "digest": "2d5e01a318d0f0879ab568c4be289c8b1f64ef8921a53c6277d5e069978baacb"
+    },
+    {
+      "name": "rfc8785-3.2.3-property-sorting",
+      "note": "Property-sorting test data from RFC 8785 section 3.2.3. Exercises UTF-16 code-unit ordering including a non-BMP surrogate pair.",
+      "preimage": {
+        "1": "One",
+        "€": "Euro Sign",
+        "\r": "Carriage Return",
+        "דּ": "Hebrew Letter Dalet With Dagesh",
+        "😀": "Emoji: Grinning Face",
+        "": "Control",
+        "ö": "Latin Small Letter O With Diaeresis"
+      },
+      "jcs": "{\"\\r\":\"Carriage Return\",\"1\":\"One\",\"\":\"Control\",\"ö\":\"Latin Small Letter O With Diaeresis\",\"€\":\"Euro Sign\",\"😀\":\"Emoji: Grinning Face\",\"דּ\":\"Hebrew Letter Dalet With Dagesh\"}",
+      "expected_value_order": [
+        "Carriage Return",
+        "One",
+        "Control",
+        "Latin Small Letter O With Diaeresis",
+        "Euro Sign",
+        "Emoji: Grinning Face",
+        "Hebrew Letter Dalet With Dagesh"
+      ],
+      "digest": "5e321556d22018a9656991a9e94f77ec175fa193e52a2429d312f8419ec8b08c"
+    }
+  ],
+  "vectors": [
+    {
+      "name": "unicode-nfc",
+      "failure_mode": "fails-closed",
+      "note": "Subject identifier with precomposed U+00E9.",
+      "preimage": {
+        "subject": "café-01"
+      },
+      "jcs": "{\"subject\":\"café-01\"}",
+      "digest": "27c800908d2d25d83690f05ca63f71c9e818e88f3b7641d8e42231ecb9be99b2"
+    },
+    {
+      "name": "unicode-nfd",
+      "failure_mode": "fails-closed",
+      "note": "Same identifier decomposed as U+0065 U+0301. Renders identically to unicode-nfc; canonical bytes differ. RFC 8785 section 3.1 requires string data be preserved as is and applies no normalization.",
+      "preimage": {
+        "subject": "café-01"
+      },
+      "jcs": "{\"subject\":\"café-01\"}",
+      "digest": "bd0d00773dbf7a58964ae5236043ec32c5b41bc2ae1e241d5ab4a28136c2f84f"
+    },
+    {
+      "name": "int-above-2p53-as-number",
+      "failure_mode": "fails-open",
+      "note": "Identifier 9007199254740993 as a JSON number. Outside the range Appendix B note (1) says true integers SHOULD occupy; ECMA-262 serialization rounds it to ...992.",
+      "preimage": {
+        "subject": 9007199254740992
+      },
+      "jcs": "{\"subject\":9007199254740992}",
+      "digest": "c7255a327476ef63c343d39de0fccf4da37d9c3e05bf1442527357a353de739f"
+    },
+    {
+      "name": "int-above-2p53-as-string",
+      "failure_mode": "n/a",
+      "note": "Same identifier as a string, per the Appendix D recommendation. Survives canonicalization intact.",
+      "preimage": {
+        "subject": "9007199254740993"
+      },
+      "jcs": "{\"subject\":\"9007199254740993\"}",
+      "digest": "6599aebf51f8353416e21edf7f66c50936903cb01f8b1aef71a216bd3e9af3b3"
+    },
+    {
+      "name": "int-above-2p53-collision",
+      "failure_mode": "fails-open",
+      "note": "Distinct identifier 9007199254740992 as a number. Canonicalizes identically to int-above-2p53-as-number: two subjects, one canonical form.",
+      "preimage": {
+        "subject": 9007199254740992
+      },
+      "jcs": "{\"subject\":9007199254740992}",
+      "digest": "c7255a327476ef63c343d39de0fccf4da37d9c3e05bf1442527357a353de739f"
+    }
+  ]
+}
