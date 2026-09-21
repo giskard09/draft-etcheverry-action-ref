@@ -1,0 +1,117 @@
+{
+  "suite": "jcs-comparison-semantics-v1",
+  "spec": "RFC 8785 (JSON Canonicalization Scheme)",
+  "derivation": "jcs = RFC 8785 canonicalization of preimage, encoded UTF-8. digest = lowercase hex SHA-256 over those bytes. A null jcs/digest means the canonicalizer refused the input; see agentavow_behavior.",
+  "author_set": "AgentAvow (did:web:agentgraph.co) — computed with AgentAvow's v2 attestation canonicalizer (the rfc8785 reference library, canonicalization id jcs-rfc8785-v1, per src/trust/envelope_v2.py). Independent of the trail author-set. The two agree byte-for-byte on every case that produces canonical bytes (the RFC anchors, the Unicode NFC/NFD pair, and the string-encoded identifier). On the integer-above-2^53 cases the implementations diverge by design: trail's canonicalizer serializes lossily and collides (fails-open); AgentAvow's refuses to canonicalize and emits nothing, so the collision is unrepresentable. That divergence is the third behavior in the failure space and is recorded per vector.",
+  "failure_modes": {
+    "fails-closed": "Different canonical bytes for one subject. A relying party sees a conflict that is not there.",
+    "fails-open": "Identical canonical bytes for two subjects. A relying party sees a match that is not there, and nothing in the artefacts indicates it.",
+    "refuses": "The canonicalizer rejects the input and produces no canonical bytes (e.g. an integer outside the RFC 8785 Appendix B note (1) range). No collision is representable through this path — strictly safer than fails-open."
+  },
+  "purpose": "Preimages that denote the same subject but produce different canonical bytes, and two distinct subjects that produce the same canonical bytes. Both follow from documented RFC 8785 properties rather than from implementation error.",
+  "anchors": [
+    {
+      "name": "rfc8785-3.2.4-utf8-bytes",
+      "note": "Input from RFC 8785 section 3.2.2; expected value is the UTF-8 hex listing published in section 3.2.4. Transcribed from the RFC, not generated.",
+      "preimage": {
+        "numbers": [
+          333333333.3333333,
+          1e+30,
+          4.5,
+          0.002,
+          1e-27
+        ],
+        "string": "€$\u000f\nA'B\"\\\\\"/",
+        "literals": [
+          null,
+          true,
+          false
+        ]
+      },
+      "jcs": "{\"literals\":[null,true,false],\"numbers\":[333333333.3333333,1e+30,4.5,0.002,1e-27],\"string\":\"€$\\u000f\\nA'B\\\"\\\\\\\\\\\"/\"}",
+      "digest": "2d5e01a318d0f0879ab568c4be289c8b1f64ef8921a53c6277d5e069978baacb",
+      "rfc_input_literal": "{\"numbers\":[333333333.33333329,1E30,4.50,2e-3,0.000000000000000000000000001],\"string\":\"\\u20ac$\\u000F\\u000aA'\\u0042\\u0022\\u005c\\\\\\\"\\/\",\"literals\":[null,true,false]}"
+    },
+    {
+      "name": "rfc8785-3.2.3-property-sorting",
+      "note": "Property-sorting test data from RFC 8785 section 3.2.3. Exercises UTF-16 code-unit ordering including a non-BMP surrogate pair.",
+      "preimage": {
+        "1": "One",
+        "€": "Euro Sign",
+        "\r": "Carriage Return",
+        "דּ": "Hebrew Letter Dalet With Dagesh",
+        "😀": "Emoji: Grinning Face",
+        "": "Control",
+        "ö": "Latin Small Letter O With Diaeresis"
+      },
+      "jcs": "{\"\\r\":\"Carriage Return\",\"1\":\"One\",\"\":\"Control\",\"ö\":\"Latin Small Letter O With Diaeresis\",\"€\":\"Euro Sign\",\"😀\":\"Emoji: Grinning Face\",\"דּ\":\"Hebrew Letter Dalet With Dagesh\"}",
+      "digest": "5e321556d22018a9656991a9e94f77ec175fa193e52a2429d312f8419ec8b08c",
+      "expected_value_order": [
+        "Carriage Return",
+        "One",
+        "Control",
+        "Latin Small Letter O With Diaeresis",
+        "Euro Sign",
+        "Emoji: Grinning Face",
+        "Hebrew Letter Dalet With Dagesh"
+      ]
+    }
+  ],
+  "vectors": [
+    {
+      "name": "unicode-nfc",
+      "preimage": {
+        "subject": "café-01"
+      },
+      "note": "Subject identifier with precomposed U+00E9.",
+      "failure_mode": "fails-closed",
+      "jcs": "{\"subject\":\"café-01\"}",
+      "digest": "27c800908d2d25d83690f05ca63f71c9e818e88f3b7641d8e42231ecb9be99b2",
+      "agrees_with_trail": true
+    },
+    {
+      "name": "unicode-nfd",
+      "preimage": {
+        "subject": "café-01"
+      },
+      "note": "Same identifier decomposed as U+0065 U+0301. Renders identically to unicode-nfc; canonical bytes differ. RFC 8785 section 3.1 requires string data be preserved as is and applies no normalization.",
+      "failure_mode": "fails-closed",
+      "jcs": "{\"subject\":\"café-01\"}",
+      "digest": "bd0d00773dbf7a58964ae5236043ec32c5b41bc2ae1e241d5ab4a28136c2f84f",
+      "agrees_with_trail": true
+    },
+    {
+      "name": "int-above-2p53-as-number",
+      "preimage": {
+        "subject": 9007199254740992
+      },
+      "note": "Identifier 9007199254740993 as a JSON number. Outside the range Appendix B note (1) says true integers SHOULD occupy; ECMA-262 serialization rounds it to ...992.",
+      "failure_mode": "refuses",
+      "jcs": null,
+      "digest": null,
+      "agentavow_behavior": "AgentAvow's canonicalizer (rfc8785 reference lib) raises IntegerDomainError and produces no canonical bytes — it refuses to canonicalize an integer outside the RFC 8785 Appendix B note (1) true-integer range rather than serializing it lossily. Where the trail author-set records a fails-open collision here, AgentAvow records a refusal: no collision is representable through this path, which is strictly safer than fails-open."
+    },
+    {
+      "name": "int-above-2p53-as-string",
+      "preimage": {
+        "subject": "9007199254740993"
+      },
+      "note": "Same identifier as a string, per the Appendix D recommendation. Survives canonicalization intact.",
+      "failure_mode": "n/a",
+      "jcs": "{\"subject\":\"9007199254740993\"}",
+      "digest": "6599aebf51f8353416e21edf7f66c50936903cb01f8b1aef71a216bd3e9af3b3",
+      "agrees_with_trail": true
+    },
+    {
+      "name": "int-above-2p53-collision",
+      "preimage": {
+        "subject": 9007199254740992
+      },
+      "note": "Distinct identifier 9007199254740992 as a number. Canonicalizes identically to int-above-2p53-as-number: two subjects, one canonical form.",
+      "failure_mode": "refuses",
+      "jcs": null,
+      "digest": null,
+      "agentavow_behavior": "AgentAvow's canonicalizer (rfc8785 reference lib) raises IntegerDomainError and produces no canonical bytes — it refuses to canonicalize an integer outside the RFC 8785 Appendix B note (1) true-integer range rather than serializing it lossily. Where the trail author-set records a fails-open collision here, AgentAvow records a refusal: no collision is representable through this path, which is strictly safer than fails-open."
+    }
+  ]
+}
