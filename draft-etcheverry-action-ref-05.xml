@@ -107,11 +107,12 @@
         operator policy.
       </t>
       <t>
-        An automated static analysis of 35,689 agent-ecosystem endpoints
-        <xref target="AgentGraph-EvidenceAnchor"/> found that 636 of 7,029
-        MCP servers (~9%) carry a high or critical finding — hardcoded secrets,
-        unsafe exec/eval, missing authentication, or known-vulnerable
-        dependencies — detectable by static analysis alone.
+        An automated static analysis
+        <xref target="AgentGraph-EvidenceAnchor"/> found that, as of
+        2026-10-21, 5,122 of 13,614 MCP servers (37.6%) carry a high or
+        critical finding — hardcoded secrets, unsafe exec/eval, missing
+        authentication, or known-vulnerable dependencies — detectable by
+        static analysis alone, and 514 (3.8%) carry a critical one.
         This motivates an independently-verifiable evidence anchor for scan
         results, so a relying party can confirm a verdict without trusting
         the scanner operator.
@@ -120,8 +121,9 @@
         <t>
           This figure covers static analysis only; it does not cover runtime
           or behavioral risk. Methodology: AgentGraph EvidenceAnchor static
-          analysis conformance set, June 2026
-          <xref target="AgentGraph-EvidenceAnchor"/>.
+          analysis conformance set
+          <xref target="AgentGraph-EvidenceAnchor"/>; figure as corrected
+          2026-10-21, superseding the June 2026 snapshot.
         </t>
       </aside>
       <t>
@@ -1017,16 +1019,13 @@ cfacbfe211cf3be67a1d64a6499a2af0ae475e2c0965c2a42f969d243df2b6cd
           (2026-10-03). This covers that helper only.
         </li>
         <li>
-          <strong>AgentGraph (agentgraph-co).</strong> An independent
-          author-set of seven vectors, reproduced with the rfc8785 Python
-          library and Node built-ins, including Vector 1 of
-          <xref target="test-vectors"/>.
-        </li>
-        <li>
-          <strong>AgentAvow (Kenne Ives).</strong> A JCS comparison-semantics
-          author-set produced with the rfc8785 reference library
-          (canonicalisation identifier jcs-rfc8785-v1), independent of the
-          trail set in this repository.
+          <strong>AgentAvow (formerly AgentGraph; Kenne Ives).</strong> An
+          independent author-set of seven vectors, reproduced with the
+          rfc8785 Python library and Node built-ins, including Vector 1 of
+          <xref target="test-vectors"/>, together with a JCS
+          comparison-semantics author-set produced with the rfc8785
+          reference library (canonicalisation identifier jcs-rfc8785-v1),
+          independent of the trail set in this repository.
         </li>
         <li>
           <strong>SafeAgent (azender1).</strong> Listed in argentum-core
@@ -1130,15 +1129,16 @@ cfacbfe211cf3be67a1d64a6499a2af0ae475e2c0965c2a42f969d243df2b6cd
           </front>
         </reference>
 
-        <reference anchor="CTEF" target="https://github.com/kenneives/agent-graph-toolkit">
+        <reference anchor="CTEF" target="https://github.com/a2aproject/A2A/discussions/1734">
           <front>
-            <title>Composable Trust Evaluation Framework (CTEF)</title>
+            <title>Composable Trust Evidence Format</title>
             <author initials="K." surname="kenneives" fullname="kenneives"/>
             <date year="2026"/>
           </front>
+          <refcontent>Also available at &lt;https://github.com/AgentAvow/AgentAvow/tree/main/docs/standards&gt;</refcontent>
         </reference>
 
-        <reference anchor="AgentGraph-EvidenceAnchor" target="https://github.com/agentgraph-co/agentgraph">
+        <reference anchor="AgentGraph-EvidenceAnchor" target="https://github.com/AgentAvow/AgentAvow/tree/main/docs/conformance/evidence-anchor-static-analysis-v0">
           <front>
             <title>evidence-anchor-static-analysis-v0: Static analysis conformance set for action_ref</title>
             <author initials="K." surname="kenneives" fullname="kenneives"/>
@@ -1299,8 +1299,8 @@ b9f8494a4a5943687d105769556be2963271e37f2216d2afd279e5b260261327
       </ol>
       <t>
         All 4 vectors are byte-verified in the conformance directory
-        at &lt;https://github.com/agentgraph-co/agentgraph&gt;.
-        The set was contributed under AGT PR #21
+        at &lt;https://github.com/AgentAvow/AgentAvow/tree/main/docs/conformance/evidence-anchor-static-analysis-v0&gt;.
+        The set was contributed under argentum-core PR #21
         (evidence-anchor-static-analysis-v0, merged 2026-06-24).
       </t>
     </section>

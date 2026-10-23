@@ -1515,11 +1515,12 @@ li > p:last-of-type:only-child {
         procedural — it follows from the derivation algorithm, not from
         operator policy.<a href="#section-1-3" class="pilcrow">¶</a></p>
 <p id="section-1-4">
-        An automated static analysis of 35,689 agent-ecosystem endpoints
-        <span>[<a href="#AgentGraph-EvidenceAnchor" class="cite xref">AgentGraph-EvidenceAnchor</a>]</span> found that 636 of 7,029
-        MCP servers (~9%) carry a high or critical finding — hardcoded secrets,
-        unsafe exec/eval, missing authentication, or known-vulnerable
-        dependencies — detectable by static analysis alone.
+        An automated static analysis
+        <span>[<a href="#AgentGraph-EvidenceAnchor" class="cite xref">AgentGraph-EvidenceAnchor</a>]</span> found that, as of
+        2026-10-21, 5,122 of 13,614 MCP servers (37.6%) carry a high or
+        critical finding — hardcoded secrets, unsafe exec/eval, missing
+        authentication, or known-vulnerable dependencies — detectable by
+        static analysis alone, and 514 (3.8%) carry a critical one.
         This motivates an independently-verifiable evidence anchor for scan
         results, so a relying party can confirm a verdict without trusting
         the scanner operator.<a href="#section-1-4" class="pilcrow">¶</a></p>
@@ -1527,8 +1528,9 @@ li > p:last-of-type:only-child {
         <p id="section-1-5.1">
           This figure covers static analysis only; it does not cover runtime
           or behavioral risk. Methodology: AgentGraph EvidenceAnchor static
-          analysis conformance set, June 2026
-          <span>[<a href="#AgentGraph-EvidenceAnchor" class="cite xref">AgentGraph-EvidenceAnchor</a>]</span>.<a href="#section-1-5.1" class="pilcrow">¶</a></p>
+          analysis conformance set
+          <span>[<a href="#AgentGraph-EvidenceAnchor" class="cite xref">AgentGraph-EvidenceAnchor</a>]</span>; figure as corrected
+          2026-10-21, superseding the June 2026 snapshot.<a href="#section-1-5.1" class="pilcrow">¶</a></p>
 </aside>
 <p id="section-1-6">
         This document covers:<a href="#section-1-6" class="pilcrow">¶</a></p>
@@ -2509,30 +2511,27 @@ cfacbfe211cf3be67a1d64a6499a2af0ae475e2c0965c2a42f969d243df2b6cd
           (2026-10-03). This covers that helper only.<a href="#section-11-3.4" class="pilcrow">¶</a>
 </li>
         <li class="normal" id="section-11-3.5">
-          <strong>AgentGraph (agentgraph-co).</strong> An independent
-          author-set of seven vectors, reproduced with the rfc8785 Python
-          library and Node built-ins, including Vector 1 of
-          <a href="#test-vectors" class="auto internal xref">Appendix "Appendix A. Test Vectors"</a>.<a href="#section-11-3.5" class="pilcrow">¶</a>
+          <strong>AgentAvow (formerly AgentGraph; Kenne Ives).</strong> An
+          independent author-set of seven vectors, reproduced with the
+          rfc8785 Python library and Node built-ins, including Vector 1 of
+          <a href="#test-vectors" class="auto internal xref">Appendix "Appendix A. Test Vectors"</a>, together with a JCS
+          comparison-semantics author-set produced with the rfc8785
+          reference library (canonicalisation identifier jcs-rfc8785-v1),
+          independent of the trail set in this repository.<a href="#section-11-3.5" class="pilcrow">¶</a>
 </li>
         <li class="normal" id="section-11-3.6">
-          <strong>AgentAvow (Kenne Ives).</strong> A JCS comparison-semantics
-          author-set produced with the rfc8785 reference library
-          (canonicalisation identifier jcs-rfc8785-v1), independent of the
-          trail set in this repository.<a href="#section-11-3.6" class="pilcrow">¶</a>
-</li>
-        <li class="normal" id="section-11-3.7">
           <strong>SafeAgent (azender1).</strong> Listed in argentum-core
           PROVIDERS.md as a Verified Provider, with a merged conformance
-          set and production trails since June 2026.<a href="#section-11-3.7" class="pilcrow">¶</a>
+          set and production trails since June 2026.<a href="#section-11-3.6" class="pilcrow">¶</a>
 </li>
-        <li class="normal" id="section-11-3.8">
+        <li class="normal" id="section-11-3.7">
           <strong>Tanilo with AgentTrust (TKCollective).</strong> Listed in
           argentum-core PROVIDERS.md as a Declared Provider, with a merged
           conformance set (self-certified by TKCollective; see
           <span><a href="https://tanilo.io/trust">https://tanilo.io/trust</a></span> for disclosure of the
-          verification limits on some historical receipts).<a href="#section-11-3.8" class="pilcrow">¶</a>
+          verification limits on some historical receipts).<a href="#section-11-3.7" class="pilcrow">¶</a>
 </li>
-        <li class="normal" id="section-11-3.9">
+        <li class="normal" id="section-11-3.8">
           <strong>AXES reference tooling (Magentix AI).</strong> An
           independent recomputation, using the AXES RFC 8785 path, of the
           13 v1 vectors (all verdicts and reject reasons) and the 6 v2
@@ -2543,7 +2542,7 @@ cfacbfe211cf3be67a1d64a6499a2af0ae475e2c0965c2a42f969d243df2b6cd
           48936665. Apache-2.0.
           &lt;https://github.com/magentixai/axes&gt;. This entry was
           contributed by Magentix AI, a committer of the Composable
-          Evidence Criteria lab.<a href="#section-11-3.9" class="pilcrow">¶</a>
+          Evidence Criteria lab.<a href="#section-11-3.8" class="pilcrow">¶</a>
 </li>
       </ul>
 </section>
@@ -2595,11 +2594,11 @@ cfacbfe211cf3be67a1d64a6499a2af0ae475e2c0965c2a42f969d243df2b6cd
 <dd class="break"></dd>
 <dt id="CTEF">[CTEF]</dt>
         <dd>
-<span class="refAuthor">kenneives, K.</span>, <span class="refTitle">"Composable Trust Evaluation Framework (CTEF)"</span>, <time datetime="2026" class="refDate">2026</time>, <span>&lt;<a href="https://github.com/kenneives/agent-graph-toolkit">https://github.com/kenneives/agent-graph-toolkit</a>&gt;</span>. </dd>
+<span class="refAuthor">kenneives, K.</span>, <span class="refTitle">"Composable Trust Evidence Format"</span>, <span class="refContent">Also available at &lt;https://github.com/AgentAvow/AgentAvow/tree/main/docs/standards&gt;</span>, <time datetime="2026" class="refDate">2026</time>, <span>&lt;<a href="https://github.com/a2aproject/A2A/discussions/1734">https://github.com/a2aproject/A2A/discussions/1734</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="AgentGraph-EvidenceAnchor">[AgentGraph-EvidenceAnchor]</dt>
         <dd>
-<span class="refAuthor">kenneives, K.</span>, <span class="refTitle">"evidence-anchor-static-analysis-v0: Static analysis conformance set for action_ref"</span>, <time datetime="2026-06" class="refDate">June 2026</time>, <span>&lt;<a href="https://github.com/agentgraph-co/agentgraph">https://github.com/agentgraph-co/agentgraph</a>&gt;</span>. </dd>
+<span class="refAuthor">kenneives, K.</span>, <span class="refTitle">"evidence-anchor-static-analysis-v0: Static analysis conformance set for action_ref"</span>, <time datetime="2026-06" class="refDate">June 2026</time>, <span>&lt;<a href="https://github.com/AgentAvow/AgentAvow/tree/main/docs/conformance/evidence-anchor-static-analysis-v0">https://github.com/AgentAvow/AgentAvow/tree/main/docs/conformance/evidence-anchor-static-analysis-v0</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="RFC9943">[RFC9943]</dt>
         <dd>
@@ -2737,8 +2736,8 @@ b9f8494a4a5943687d105769556be2963271e37f2216d2afd279e5b260261327
       </ol>
 <p id="appendix-B-4">
         All 4 vectors are byte-verified in the conformance directory
-        at &lt;https://github.com/agentgraph-co/agentgraph&gt;.
-        The set was contributed under AGT PR #21
+        at &lt;https://github.com/AgentAvow/AgentAvow/tree/main/docs/conformance/evidence-anchor-static-analysis-v0&gt;.
+        The set was contributed under argentum-core PR #21
         (evidence-anchor-static-analysis-v0, merged 2026-06-24).<a href="#appendix-B-4" class="pilcrow">¶</a></p>
 </section>
 </div>

@@ -144,24 +144,24 @@ Internet-Draft              Action Reference                October 2026
    structural, not procedural — it follows from the derivation
    algorithm, not from operator policy.
 
-   An automated static analysis of 35,689 agent-ecosystem endpoints
-   [AgentGraph-EvidenceAnchor] found that 636 of 7,029 MCP servers (~9%)
-   carry a high or critical finding — hardcoded secrets, unsafe exec/
-   eval, missing authentication, or known-vulnerable dependencies —
-   detectable by static analysis alone.  This motivates an
-   independently-verifiable evidence anchor for scan results, so a
-   relying party can confirm a verdict without trusting the scanner
-   operator.
+   An automated static analysis [AgentGraph-EvidenceAnchor] found that,
+   as of 2026-10-21, 5,122 of 13,614 MCP servers (37.6%) carry a high or
+   critical finding — hardcoded secrets, unsafe exec/eval, missing
+   authentication, or known-vulnerable dependencies — detectable by
+   static analysis alone, and 514 (3.8%) carry a critical one.  This
+   motivates an independently-verifiable evidence anchor for scan
+   results, so a relying party can confirm a verdict without trusting
+   the scanner operator.
 
       |  This figure covers static analysis only; it does not cover
       |  runtime or behavioral risk.  Methodology: AgentGraph
-      |  EvidenceAnchor static analysis conformance set, June 2026
-      |  [AgentGraph-EvidenceAnchor].
+      |  EvidenceAnchor static analysis conformance set
+      |  [AgentGraph-EvidenceAnchor]; figure as corrected 2026-10-21,
+      |  superseding the June 2026 snapshot.
 
    This document covers:
 
    *  The derivation algorithm (SHA-256 over JCS-canonical JSON).
-
 
 
 
@@ -1015,15 +1015,13 @@ Internet-Draft              Action Reference                October 2026
       the pinned conformance Action in CI, run 37103514980 (2026-10-03).
       This covers that helper only.
 
-   *  *AgentGraph (agentgraph-co).* An independent author-set of seven
-      vectors, reproduced with the rfc8785 Python library and Node
-      built-ins, including Vector 1 of Appendix "Appendix A.  Test
-      Vectors".
-
-   *  *AgentAvow (Kenne Ives).* A JCS comparison-semantics author-set
-      produced with the rfc8785 reference library (canonicalisation
-      identifier jcs-rfc8785-v1), independent of the trail set in this
-      repository.
+   *  *AgentAvow (formerly AgentGraph; Kenne Ives).* An independent
+      author-set of seven vectors, reproduced with the rfc8785 Python
+      library and Node built-ins, including Vector 1 of
+      Appendix "Appendix A.  Test Vectors", together with a JCS
+      comparison-semantics author-set produced with the rfc8785
+      reference library (canonicalisation identifier jcs-rfc8785-v1),
+      independent of the trail set in this repository.
 
    *  *SafeAgent (azender1).* Listed in argentum-core PROVIDERS.md as a
       Verified Provider, with a merged conformance set and production
@@ -1061,6 +1059,8 @@ Internet-Draft              Action Reference                October 2026
 
 
 
+
+
 Etcheverry & Ives         Expires 26 April 2027                [Page 19]
 
 Internet-Draft              Action Reference                October 2026
@@ -1086,14 +1086,17 @@ Internet-Draft              Action Reference                October 2026
               Implementation and Conformance Suite", 2026,
               <https://github.com/giskard09/argentum-core>.
 
-   [CTEF]     kenneives, K., "Composable Trust Evaluation Framework
-              (CTEF)", 2026,
-              <https://github.com/kenneives/agent-graph-toolkit>.
+   [CTEF]     kenneives, K., "Composable Trust Evidence Format", Also
+              available at
+              <https://github.com/AgentAvow/AgentAvow/tree/main/docs/
+              standards>, 2026,
+              <https://github.com/a2aproject/A2A/discussions/1734>.
 
    [AgentGraph-EvidenceAnchor]
               kenneives, K., "evidence-anchor-static-analysis-v0: Static
               analysis conformance set for action_ref", June 2026,
-              <https://github.com/agentgraph-co/agentgraph>.
+              <https://github.com/AgentAvow/AgentAvow/tree/main/docs/
+              conformance/evidence-anchor-static-analysis-v0>.
 
    [RFC9943]  Birkholz, H., Delignat-Lavaud, A., Fournet, C., Deshpande,
               Y., and S. Lasker, "An Architecture for Trustworthy and
@@ -1111,9 +1114,6 @@ Internet-Draft              Action Reference                October 2026
               RFC 7942, DOI 10.17487/RFC7942, July 2016,
               <https://www.rfc-editor.org/info/rfc7942>.
 
-   [I-D.ietf-scitt-receipts-ccf-profile]
-              Birkholz, H., Delignat-Lavaud, A., Fournet, C., and A.
-              Chamayou, "CCF Profile for COSE Receipts", Work in
 
 
 
@@ -1122,6 +1122,9 @@ Etcheverry & Ives         Expires 26 April 2027                [Page 20]
 Internet-Draft              Action Reference                October 2026
 
 
+   [I-D.ietf-scitt-receipts-ccf-profile]
+              Birkholz, H., Delignat-Lavaud, A., Fournet, C., and A.
+              Chamayou, "CCF Profile for COSE Receipts", Work in
               Progress, Internet-Draft, draft-ietf-scitt-receipts-ccf-
               profile-06, 22 October 2026,
               <https://datatracker.ietf.org/doc/draft-ietf-scitt-
@@ -1164,9 +1167,6 @@ A.2.  Negative Conformance Vector — Epoch-Integer Timestamp
    a different hash and correctly reject the receipt.
 
 A.3. authorization_ref Vector
-
-
-
 
 
 
@@ -1220,10 +1220,10 @@ analysis-v0
        derivation is exercised live, not only specified.
 
    All 4 vectors are byte-verified in the conformance directory at
-   <https://github.com/agentgraph-co/agentgraph>.  The set was
-   contributed under AGT PR #21 (evidence-anchor-static-analysis-v0,
-   merged 2026-06-24).
-
+   <https://github.com/AgentAvow/AgentAvow/tree/main/docs/conformance/
+   evidence-anchor-static-analysis-v0>.  The set was contributed under
+   argentum-core PR #21 (evidence-anchor-static-analysis-v0, merged
+   2026-06-24).
 
 
 
