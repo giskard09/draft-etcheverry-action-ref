@@ -1,0 +1,1288 @@
+
+
+
+
+Independent Submission                                     P. Etcheverry
+Internet-Draft                                                      Rama
+Intended status: Informational                                   K. Ives
+Expires: 26 April 2027                                   23 October 2026
+
+
+     Action Reference: A Deterministic Identifier for Agent Actions
+                     draft-etcheverry-action-ref-04
+
+Abstract
+
+   This document defines "action_ref", a deterministic, content-
+   addressed identifier for autonomous agent actions.  Any party holding
+   the four preimage fields (agent_id, action_type, scope, timestamp)
+   can independently compute and verify the identifier without trusting
+   the emitting system.  The document specifies the derivation
+   algorithm, canonical serialization using RFC 8785 JSON
+   Canonicalization Scheme (JCS), timestamp format requirements,
+   canonical receipt envelope, optional fields for revocation and policy
+   rotation auditability, scope conventions, and a composability model
+   with existing exactly-once execution guarantees.
+
+Editorial Note
+
+   Discussion of this draft takes place on the argentum-core repository:
+   <https://github.com/giskard09/argentum-core>.  A conformance test
+   suite with byte-verified vectors is maintained at
+   <https://github.com/giskard09/argentum-core/tree/main/examples/
+   conformance>.
+
+Status of This Memo
+
+   This Internet-Draft is submitted in full conformance with the
+   provisions of BCP 78 and BCP 79.
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF).  Note that other groups may also distribute
+   working documents as Internet-Drafts.  The list of current Internet-
+   Drafts is at https://datatracker.ietf.org/drafts/current/.
+
+   Internet-Drafts are draft documents valid for a maximum of six months
+   and may be updated, replaced, or obsoleted by other documents at any
+   time.  It is inappropriate to use Internet-Drafts as reference
+   material or to cite them other than as "work in progress."
+
+   This Internet-Draft will expire on 26 April 2027.
+
+
+
+
+
+Etcheverry & Ives         Expires 26 April 2027                 [Page 1]
+
+Internet-Draft              Action Reference                October 2026
+
+
+Copyright Notice
+
+   Copyright (c) 2026 IETF Trust and the persons identified as the
+   document authors.  All rights reserved.
+
+   This document is subject to BCP 78 and the IETF Trust's Legal
+   Provisions Relating to IETF Documents (https://trustee.ietf.org/
+   license-info) in effect on the date of publication of this document.
+   Please review these documents carefully, as they describe your rights
+   and restrictions with respect to this document.
+
+Table of Contents
+
+   1.  Introduction  . . . . . . . . . . . . . . . . . . . . . . . .   3
+   2.  Terminology . . . . . . . . . . . . . . . . . . . . . . . . .   4
+   3.  Action Reference Derivation . . . . . . . . . . . . . . . . .   4
+     3.1.  Preimage Fields . . . . . . . . . . . . . . . . . . . . .   5
+     3.2.  Serialization . . . . . . . . . . . . . . . . . . . . . .   5
+     3.3.  Hash Function . . . . . . . . . . . . . . . . . . . . . .   6
+     3.4.  Timestamp Format  . . . . . . . . . . . . . . . . . . . .   6
+     3.5.  Derivation Example  . . . . . . . . . . . . . . . . . . .   7
+   4.  Canonical Receipt Envelope  . . . . . . . . . . . . . . . . .   7
+     4.1.  Required Fields . . . . . . . . . . . . . . . . . . . . .   7
+     4.2.  Optional Fields for Rotation Auditability . . . . . . . .   8
+   5.  Three-Record Trail and authorization_ref  . . . . . . . . . .   9
+     5.1.  Layer Model . . . . . . . . . . . . . . . . . . . . . . .   9
+     5.2.  authorization_ref Derivation  . . . . . . . . . . . . . .  10
+     5.3.  Canonical Linking Key . . . . . . . . . . . . . . . . . .  10
+   6.  Scope Conventions . . . . . . . . . . . . . . . . . . . . . .  11
+   7.  Conformance . . . . . . . . . . . . . . . . . . . . . . . . .  11
+   8.  Telemetry Integration . . . . . . . . . . . . . . . . . . . .  12
+     8.1.  Instrumentation Point . . . . . . . . . . . . . . . . . .  12
+     8.2.  Attribute Placement . . . . . . . . . . . . . . . . . . .  13
+     8.3.  Cross-Producer Correlation  . . . . . . . . . . . . . . .  13
+   9.  Security Considerations . . . . . . . . . . . . . . . . . . .  14
+     9.1.  Replay Attack Surface . . . . . . . . . . . . . . . . . .  14
+     9.2.  Scope Injection . . . . . . . . . . . . . . . . . . . . .  14
+     9.3.  Timestamp Manipulation  . . . . . . . . . . . . . . . . .  14
+     9.4.  Operator-Independence Guarantee . . . . . . . . . . . . .  14
+   10. Interoperability Considerations . . . . . . . . . . . . . . .  15
+     10.1.  On-chain Anchoring (Informative) . . . . . . . . . . . .  16
+     10.2.  Composed Attestation Across Independent Producers  . . .  16
+   11. Implementation Status . . . . . . . . . . . . . . . . . . . .  18
+   12. IANA Considerations . . . . . . . . . . . . . . . . . . . . .  19
+   13. References  . . . . . . . . . . . . . . . . . . . . . . . . .  19
+     13.1.  Normative References . . . . . . . . . . . . . . . . . .  19
+     13.2.  Informative References . . . . . . . . . . . . . . . . .  20
+   Appendix A.  Test Vectors . . . . . . . . . . . . . . . . . . . .  21
+
+
+
+Etcheverry & Ives         Expires 26 April 2027                 [Page 2]
+
+Internet-Draft              Action Reference                October 2026
+
+
+     A.1.  Positive Conformance Vector . . . . . . . . . . . . . . .  21
+     A.2.  Negative Conformance Vector — Epoch-Integer Timestamp . .  21
+     A.3. authorization_ref Vector . . . . . . . . . . . . . . . . .  21
+   Appendix A.4.  External Conformance Set —
+           evidence-anchor-static-analysis-v0  . . . . . . . . . . .  22
+   Appendix B.  Field Mapping for Existing Systems . . . . . . . . .  23
+   Authors' Addresses  . . . . . . . . . . . . . . . . . . . . . . .  23
+
+1.  Introduction
+
+   Autonomous agents operating across distributed systems need a way to
+   identify individual actions that is independent of any single
+   system's infrastructure.  Existing audit trail mechanisms rely on
+   operator-managed identifiers — UUIDs, database primary keys, or
+   system-specific event IDs — that cannot be verified by a third party
+   without trusting the issuing system.
+
+   This document defines "action_ref": a deterministic identifier
+   derived from four preimage fields that any party can independently
+   compute.  The identifier is content-addressed — it is derived from
+   the action content itself, not from a sequencer or registry.  A
+   verifier holding the four fields can recompute it without any call to
+   the operator's infrastructure.
+
+   The design goal is operator-independence: a receipt carrying
+   action_ref can be verified by an auditor, a smart contract, or a
+   competing system without trusting the emitter.  This property is
+   structural, not procedural — it follows from the derivation
+   algorithm, not from operator policy.
+
+   An automated static analysis of 35,689 agent-ecosystem endpoints
+   [AgentGraph-EvidenceAnchor] found that 636 of 7,029 MCP servers (~9%)
+   carry a high or critical finding — hardcoded secrets, unsafe exec/
+   eval, missing authentication, or known-vulnerable dependencies —
+   detectable by static analysis alone.  This motivates an
+   independently-verifiable evidence anchor for scan results, so a
+   relying party can confirm a verdict without trusting the scanner
+   operator.
+
+      |  This figure covers static analysis only; it does not cover
+      |  runtime or behavioral risk.  Methodology: AgentGraph
+      |  EvidenceAnchor static analysis conformance set, June 2026
+      |  [AgentGraph-EvidenceAnchor].
+
+   This document covers:
+
+   *  The derivation algorithm (SHA-256 over JCS-canonical JSON).
+
+
+
+
+Etcheverry & Ives         Expires 26 April 2027                 [Page 3]
+
+Internet-Draft              Action Reference                October 2026
+
+
+   *  Preimage field semantics and invariants.
+
+   *  Timestamp format requirements for cross-implementation byte
+      consistency.
+
+   *  The canonical receipt envelope.
+
+   *  Optional fields for policy rotation and revocation auditability.
+
+   *  The authorization_ref derivation for three-record trail
+      correlation.
+
+   *  Scope conventions for cross-emitter disambiguation.
+
+   *  Security considerations including replay attack surface.
+
+2.  Terminology
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and
+   "OPTIONAL" in this document are to be interpreted as described in BCP
+   14 [RFC2119] [RFC8174] when, and only when, they appear in all
+   capitals, as shown here.
+
+   action_ref:  A deterministic, content-addressed identifier for an
+      agent action.  Computed as SHA-256(JCS({agent_id, action_type,
+      scope, timestamp})).
+
+   preimage:  The four-field JSON object over which the SHA-256 hash is
+      computed: {agent_id, action_type, scope, timestamp}.
+
+   emitter:  The system or agent that produces a receipt containing
+      action_ref.
+
+   verifier:  Any party that independently recomputes action_ref from
+      the preimage fields and checks it against a presented receipt.
+
+   operator:  The system controlling the emitter.  A verifier MUST be
+      able to verify action_ref without trusting the operator.
+
+   JCS:  JSON Canonicalization Scheme, defined in [RFC8785].  Produces a
+      unique byte sequence for any JSON value.
+
+   trail:  A sequence of records (pre-execution, decision, receipt)
+      correlated by action_ref across systems.
+
+3.  Action Reference Derivation
+
+
+
+
+Etcheverry & Ives         Expires 26 April 2027                 [Page 4]
+
+Internet-Draft              Action Reference                October 2026
+
+
+3.1.  Preimage Fields
+
+   The preimage is a JSON object containing exactly four fields:
+
+   +=============+========+===========================================+
+   | Field       | Type   | Description                               |
+   +=============+========+===========================================+
+   | agent_id    | string | Stable identifier for the executing agent |
+   |             |        | at issuance time — the terminal executor  |
+   |             |        | after full delegation resolution.  In a   |
+   |             |        | delegation chain A→B→C where C executes   |
+   |             |        | the action, agent_id is C.                |
+   +-------------+--------+-------------------------------------------+
+   | action_type | string | Semantic label for what the agent did     |
+   |             |        | (e.g., "code.execute", "payment.send",    |
+   |             |        | "oracle.signal").                         |
+   +-------------+--------+-------------------------------------------+
+   | scope       | string | Terminal executing agent's requested-     |
+   |             |        | intent scope at the point of action.      |
+   |             |        | Non-empty string.  MUST NOT be a derived  |
+   |             |        | hash of the intent object (see            |
+   |             |        | Section 6).                               |
+   +-------------+--------+-------------------------------------------+
+   | timestamp   | string | RFC 3339 UTC with exactly 3 millisecond   |
+   |             |        | digits.  Format: YYYY-MM-                 |
+   |             |        | DDTHH:MM:SS.mmmZ.  See Section 3.4.       |
+   +-------------+--------+-------------------------------------------+
+
+                                 Table 1
+
+   The four fields are REQUIRED.  No additional fields enter the
+   preimage.  Optional fields in the receipt envelope (Section 4) do not
+   affect the action_ref value.
+
+3.2.  Serialization
+
+   The four fields MUST be serialized using RFC 8785 JSON
+   Canonicalization Scheme (JCS) before hashing:
+
+   *  Keys in lexicographic Unicode code point order: action_type,
+      agent_id, scope, timestamp.
+
+   *  No whitespace between tokens.
+
+   *  UTF-8 encoded.
+
+   *  Values are JSON strings (standard JSON escaping only).
+
+
+
+
+Etcheverry & Ives         Expires 26 April 2027                 [Page 5]
+
+Internet-Draft              Action Reference                October 2026
+
+
+   The resulting JCS payload for a conformant implementation will sort
+   keys in this order: action_type < agent_id < scope < timestamp.
+
+   Implementations using the simple json.dumps approach (Python,
+   Node.js) produce RFC 8785-compatible bytes for inputs within the safe
+   band: ASCII-only field values, conformant RFC 3339 timestamps, no
+   surrogate-pair Unicode.  For inputs outside this band,
+   implementations MUST use an RFC 8785-compliant library.
+
+3.3.  Hash Function
+
+   action_ref = SHA-256(JCS(preimage)), encoded as lowercase
+   hexadecimal.
+
+   The output is a 64-character lowercase hex string (256 bits / 32
+   bytes).  Uppercase hex is non-conformant.
+
+3.4.  Timestamp Format
+
+   The timestamp field MUST conform to the following format constraints:
+
+   *  Timezone: "Z" suffix only. "+00:00" or any other offset
+      representation is non-conformant.
+
+   *  Fractional precision: exactly 3 digits (milliseconds).  No
+      trailing zero suppression. ".000" is conformant; ".0" is not.
+
+   *  Template: YYYY-MM-DDTHH:MM:SS.mmmZ — one valid byte sequence per
+      instant.
+
+   These constraints close the [RFC3339] underspecification surface.
+   RFC 3339 admits multiple lexically distinct encodings of the same
+   instant that produce different SHA-256 digests under JCS.  This
+   specification closes that surface at the format level.
+
+   Implementations holding epoch-millisecond integers MUST convert to
+   the conformant RFC 3339 string before hashing.  Implementations that
+   hash the epoch-ms integer directly are not conformant.
+
+   The W3C CG ai-agent-protocol discussion (issue #34) established
+   epoch-millisecond integer as an application-layer representation.
+   This specification uses the RFC 3339 string form in the preimage.
+   The two representations are not interchangeable in the preimage —
+   they produce different digests.
+
+
+
+
+
+
+
+Etcheverry & Ives         Expires 26 April 2027                 [Page 6]
+
+Internet-Draft              Action Reference                October 2026
+
+
+3.5.  Derivation Example
+
+   The following example is byte-verified in the conformance suite
+   (vector "nexus-oracle-signal"):
+
+   Input:
+     agent_id    = "nexus-agent-xa12.onrender.com"
+     action_type = "oracle.signal"
+     scope       = "BTC"
+     timestamp   = "2025-05-18T11:40:31.000Z"
+
+   JCS payload:
+     {"action_type":"oracle.signal","agent_id":"nexus-agent-xa12.on
+     render.com","scope":"BTC","timestamp":"2025-05-18T11:40:31.000Z"}
+
+   SHA-256:
+     fdd7f810499f06be24355ca8e2bfb8c4b965cc80c838f41fa074683443d89f5a
+
+4.  Canonical Receipt Envelope
+
+4.1.  Required Fields
+
+   Implementations that emit a receipt referencing this specification
+   SHOULD include the following fields to ensure long-lived
+   verifiability:
+
+   {
+     "packet_version": "1.0",
+     "action_ref": "<sha256 hex>",
+     "hash_algo": "sha256",
+     "preimage_format": "jcs-rfc8785-v1",
+     "preimage": {
+       "agent_id": "...",
+       "action_type": "...",
+       "scope": "...",
+       "timestamp": "2026-05-15T10:00:00.123Z"
+     }
+   }
+
+   packet_version:  Forward-compatibility anchor. v1 verifiers can
+      explicitly reject unknown versions rather than fail silently.
+
+   hash_algo:  Makes receipts self-describing.  If a future
+      implementation switches hash functions, receipts issued before the
+      change remain replayable.
+
+   preimage_format:  Unambiguously identifies the serialization.  Any
+
+
+
+
+Etcheverry & Ives         Expires 26 April 2027                 [Page 7]
+
+Internet-Draft              Action Reference                October 2026
+
+
+      verifier can recompute action_ref from the preimage fields using
+      RFC 8785 without trusting the emitter.
+
+4.2.  Optional Fields for Rotation Auditability
+
+   The canonical receipt envelope v1.0 records state at the moment the
+   action was claimed.  It does not record whether that state was still
+   valid when the action was admitted for execution.  Two failure modes
+   this gap creates:
+
+   1.  *Trust tier degradation:* an agent moves from TRUSTED to WATCH
+       between claim and execution.  The anchor records the claim-time
+       state.  A verifier replaying the receipt cannot determine from
+       the receipt alone whether the agent was still trusted when the
+       action was admitted.
+
+   2.  *Policy rotation:* the counterparty policy changes between
+       issuance and execution.  A counterparty_policy_hash field proves
+       which policy was referenced at claim time, but does not prove
+       whether that policy was still current at admission.
+
+   Three optional fields close this gap:
+
+   policy_version (string, OPTIONAL):  Identifies which version of the
+      governing policy was in force when the action was admitted.
+      Distinct from counterparty_policy_hash, which proves which policy
+      was referenced — policy_version proves whether it was still
+      current at execution time.
+
+   authority_verified_at_ms (integer, OPTIONAL):  Unix timestamp in
+      milliseconds at which the delegation authority was verified at
+      issuance.  Records when the acting agent's authority was confirmed
+      before the action was admitted.
+
+   revocation_check_at_ms (integer, OPTIONAL):  Unix timestamp in
+      milliseconds of the last non-revocation check performed before
+      execution.  Establishes a maximum window of credential exposure.
+      A receipt without this field cannot prove the agent's credentials
+      were valid immediately before the action was admitted.
+
+   A verifier that requires post-rotation auditability SHOULD treat a
+   receipt missing either field as unauditable for the rotation window —
+   not as invalid.
+
+   The millisecond precision for revocation_check_at_ms is REQUIRED.
+   Credential checks in live multi-agent systems happen at sub-second
+   granularity.  Systems that only have second-precision timestamps
+   SHOULD multiply by 1000 and document the precision loss.
+
+
+
+Etcheverry & Ives         Expires 26 April 2027                 [Page 8]
+
+Internet-Draft              Action Reference                October 2026
+
+
+   Note: the three optional fields in this section correspond to the
+   "freshness" verification layer described in discussions on the
+   agntcy/identity repository (issue #165).  A verifier confirming
+   offline signature integrity (integrity), checking that the executed
+   scope sat within the delegated scope (authority), and establishing
+   the key validity window at decision time (freshness) needs all three
+   layers.  The fields in this section address the freshness layer; the
+   authorization_ref in Section 5 addresses the authority layer.
+
+5.  Three-Record Trail and authorization_ref
+
+5.1.  Layer Model
+
+   action_ref is the correlation key across a three-record trail:
+
+   1.  *Pre-execution record:* the commitment before the action is
+       taken.  Contains the action_ref preimage fields and
+       authorization_ref.
+
+   2.  *Decision record:* the authorization event.  Contains
+       authorization_ref as its identifier and action_ref as the
+       correlation key.
+
+   3.  *Receipt:* the post-execution record.  Contains action_ref and
+       authorization_ref; verifier checks both against the pre-execution
+       record.
+
+   A conformant verifier runs four independent checks across the trail:
+
+      +====================+========================================+
+      | Check              | Fields compared                        |
+      +====================+========================================+
+      | Same call instance | action_ref in pre-execution ==         |
+      |                    | action_ref in receipt                  |
+      +--------------------+----------------------------------------+
+      | Same proposed      | original_args_digest recomputed from   |
+      | payload            | disclosed args                         |
+      +--------------------+----------------------------------------+
+      | Same dispatched    | effective_args_digest in pre-execution |
+      | payload            | == verifier-recomputed from receipt    |
+      +--------------------+----------------------------------------+
+      | Same authorization | authorization_ref in pre-execution ==  |
+      | decision           | authorization_ref in receipt           |
+      +--------------------+----------------------------------------+
+
+                                  Table 2
+
+
+
+
+
+Etcheverry & Ives         Expires 26 April 2027                 [Page 9]
+
+Internet-Draft              Action Reference                October 2026
+
+
+   A trail that passes the first three checks but fails the fourth
+   proves that execution proceeded under a different approval than the
+   one recorded in the pre-execution entry.
+
+5.2.  authorization_ref Derivation
+
+   authorization_ref is the identifier for the Decision record:
+
+   authorization_ref = SHA-256(JCS({
+     "action_ref":       "<sha256 hex>",
+     "authorized_scope": "<scope string>",
+     "decision_ts":      <epoch-ms integer>,
+     "policy_id":        "<policy identifier>"
+   }))
+
+   JCS lexicographic key order: action_ref, authorized_scope,
+   decision_ts, policy_id.  Note: decision_ts is an epoch-millisecond
+   integer, not an RFC 3339 string.
+
+   Invariants:
+
+   *  action_ref is embedded in the preimage.  A verifier can confirm
+      the decision was not reused across action instances.
+
+   *  Recomputable without operator cooperation from the four decision
+      record fields.
+
+   *  MUST appear in both the pre-execution record and the receipt.
+
+   *  The signer of the Decision record MUST be independent of the
+      actor/executor whose action it authorizes.  A party recomputing
+      and certifying an existing signed record after the fact (referee
+      role) does not satisfy this — the signer of record must be
+      independent BEFORE the outcome is final, not verifying it
+      afterward.
+
+5.3.  Canonical Linking Key
+
+   The same action_ref is computable from artifacts produced by
+   independent systems using the same four-field derivation:
+
+   *  A Mycelium TrailRecord (preimage fields published in each record).
+
+   *  A Nobulex covenant receipt (action_type as semantic label +
+      timestamp + agent_id + scope).
+
+   *  A SafeAgent claim (joint spec argentum-core issue #7).
+
+
+
+
+Etcheverry & Ives         Expires 26 April 2027                [Page 10]
+
+Internet-Draft              Action Reference                October 2026
+
+
+   *  A CrewAI idempotency key (crewAI PR #5822 — key derivation
+      converges on this primitive from the retry-deduplication
+      direction).
+
+   *  NEXUS oracle receipts (implements canonical envelope v1.0).
+
+   Any verifier holding one artifact can validate against another
+   without trusting either system.
+
+6.  Scope Conventions
+
+   scope is a free-form non-empty string.  Any value is valid as long as
+   it is non-empty and consistent across all parties deriving the same
+   action_ref.
+
+   RECOMMENDED convention (non-normative): namespace-prefix with the
+   emitter identifier using <emitter>:<scope>, for example
+   "algovoi:compliance_screen" or "presidio:x402.screen:clean-allow".
+   Prefixing avoids collisions when trails from multiple emitters are
+   verified or aggregated by a third party.
+
+   The scope anti-pattern: scope MUST NOT be a derived hash of the
+   intent object.  A common mistake is to hash the initial intent object
+   and use that hash as the scope value.  This breaks the primary
+   verifiability property: any party holding the four preimage fields
+   must be able to recompute action_ref independently, without
+   retrieving any external record.  With a hashed scope, a verifier
+   cannot recompute action_ref from the intent tuple alone — they must
+   also retrieve the commitment record.
+
+   Multi-value scope segments: when a scope segment encodes a set of
+   values (e.g., entity types detected by a screening decision),
+   implementations MUST sort those values lexicographically and join
+   them with a comma and no spaces.  This ensures byte-determinism
+   across implementations that may produce values in non-stable
+   detection order.
+
+7.  Conformance
+
+   A conformance test suite with byte-verified vectors is maintained in
+   [argentum-core].
+
+   The suite includes:
+
+   *  action-ref-v1-baseline: positive and negative vectors for the four
+      preimage fields, including timestamp format violations.
+
+
+
+
+
+Etcheverry & Ives         Expires 26 April 2027                [Page 11]
+
+Internet-Draft              Action Reference                October 2026
+
+
+   *  guardrail-provider-v1: authorization_ref derivation vectors
+      including NEG cases for decision reuse detection.
+
+   *  near-miss-v1: same action_ref, different state
+      (KNOWN_DESIGN_PROPERTY).
+
+   *  recompute-drift-v1: epoch-integer non-conformance (neg-b01-epoch-
+      integer).
+
+   *  signing-trust-ref-v1: operator key isolation vectors.
+
+   *  restraint-receipt-v1: deny and defer verdict vectors.
+
+   Each conformance directory includes verify.py and verify.mjs.  All
+   vectors are byte-identical across implementations.  The stable tag
+   for v1.0 is "action-ref-v1.0" in the argentum-core repository.
+
+   External conformance sets accepted under review:
+
+   *  examples/conformance/graph-advocate/ — PaulieB14 (Graph Advocate),
+      counterparty-ref-v1, 3 vectors, 2 implementations byte-identical,
+      production service.
+
+   *  examples/conformance/agentoracle-v1/ — TKCollective (AgentOracle +
+      AgentTrust), 10 vectors, cross-issuer property verified.
+
+   *  examples/conformance/presidio-x402/ — vstantch/presidio-group.eu,
+      PII screening with composition, 3 vectors.
+
+8.  Telemetry Integration
+
+   action_ref is designed to serve as a correlation key in observability
+   pipelines.  This section defines the instrumentation point, attribute
+   placement, and cross-producer correlation property for
+   implementations that export telemetry records.
+
+8.1.  Instrumentation Point
+
+   The correct instrumentation point is the authorization gate's
+   evaluation operation: the component that receives the intent tuple,
+   applies policy, and returns a decision (allow, deny, warn, escalate,
+   or transform).
+
+
+
+
+
+
+
+
+
+Etcheverry & Ives         Expires 26 April 2027                [Page 12]
+
+Internet-Draft              Action Reference                October 2026
+
+
+   Implementations MUST NOT derive action_ref at the invoking agent's
+   span level.  Agent-level instrumentation does not have access to the
+   complete intent tuple (agent_id, action_type, scope, timestamp) as
+   presented to the gate.  A hash computed from partial or reconstructed
+   inputs is not conformant and will not verify against independently
+   derived values.
+
+   The gate SHOULD derive action_ref before returning the verdict, so
+   that the value is available for inclusion in the evaluation record at
+   the moment of decision.  The derivation requires no network call or
+   external state: it is a local SHA-256 of the JCS-serialized preimage.
+
+8.2.  Attribute Placement
+
+   When the gate's evaluation operation is recorded as a telemetry span
+   or structured event, action_ref SHOULD be included as a string
+   attribute.  The gate sets this attribute from the preimage fields,
+   not from the returned decision object or any downstream record.
+
+   Downstream components that reference the same action (e.g., a payment
+   receipt, an audit log entry, or a screening record) MAY carry
+   action_ref as a correlation attribute.  When a downstream span
+   includes action_ref, the value MUST be the 64-character lowercase hex
+   string derived by the gate for that evaluation.  Re-deriving the
+   value from a different preimage is not permitted: only the gate holds
+   the authoritative preimage at decision time.
+
+8.3.  Cross-Producer Correlation
+
+   Because action_ref is derived deterministically from a fixed
+   preimage, independent components that participate in the same
+   authorized action can produce the same value without coordination.  A
+   policy gate, a screening component, and an audit service each derive
+   the same action_ref from the same four fields, independently and
+   without shared session state.
+
+   This property enables a verifier to correlate telemetry records
+   across producers without trusting any single emitter.  A monitoring
+   system that receives evaluation events from multiple authorization
+   components can join them on action_ref without relying on an
+   operator-provided correlation key.  The join is verifiable: any party
+   holding the preimage fields can recompute the key and confirm the
+   association.
+
+   When multiple components record the same action_ref in the same
+   telemetry pipeline, the set of matching records constitutes an
+   independently verifiable trace of the action across system
+   boundaries.
+
+
+
+Etcheverry & Ives         Expires 26 April 2027                [Page 13]
+
+Internet-Draft              Action Reference                October 2026
+
+
+9.  Security Considerations
+
+9.1.  Replay Attack Surface
+
+   action_ref is deterministic: the same four preimage field values
+   always produce the same identifier.  This is a design property — it
+   enables cross-system correlation without operator trust.  The
+   implication is that action_ref alone does not prevent replay.
+
+   Replay protection requires the receipt to carry:
+
+   *  authorization_ref (Section 5.2): binds the identifier to a
+      specific authorization decision.  A replayed action_ref with a
+      different authorization decision will fail check 4.
+
+   *  signing-trust-ref-v1: an operator-independent signature over the
+      full receipt envelope.  An attacker cannot substitute a different
+      receipt without invalidating the signature.
+
+   A verifier that checks action_ref alone (without authorization_ref
+   and signature) cannot detect replay.  This specification requires
+   both fields for complete replay resistance.
+
+9.2.  Scope Injection
+
+   If scope is not validated at emission time, an adversary can inject a
+   scope string that differs from the actual intent.  The action_ref
+   will be a valid hash of the injected scope, not of the actual action.
+   Verifiers SHOULD require that scope is provided by the executing
+   agent, not derived or transformed by an intermediary system.
+
+9.3.  Timestamp Manipulation
+
+   A non-conformant timestamp (wrong precision, wrong timezone suffix,
+   epoch-ms instead of RFC 3339 string) produces a different digest.
+   This can be used to generate action_refs that appear valid but cannot
+   be independently recomputed by a conformant verifier.
+   Implementations MUST validate timestamp format at emission time, not
+   only at verification time.
+
+9.4.  Operator-Independence Guarantee
+
+   The operator-independence property holds only if:
+
+   1.  The four preimage fields are disclosed to verifiers.
+
+   2.  The hash function and serialization are public and deterministic.
+
+
+
+
+Etcheverry & Ives         Expires 26 April 2027                [Page 14]
+
+Internet-Draft              Action Reference                October 2026
+
+
+   3.  No field in the preimage is derived from an operator-controlled
+       system without disclosure.
+
+   An emitter that uses a non-public agent_id (e.g., a UUID assigned by
+   an internal sequencer and not disclosed) breaks the verifiability
+   property: a verifier cannot recompute action_ref without retrieving
+   the agent_id from the operator.  Implementations MUST use stable,
+   publicly disclosed agent identifiers.
+
+   The operator-independence property can be satisfied in two distinct
+   ways, and implementers SHOULD state which one applies.  In the
+   *internally-consistent* case, the verifier's own recomputation of
+   action_ref from the disclosed preimage fields is sufficient: the
+   digest either matches or it does not, and no party external to the
+   emitter and the verifier needs to attest to anything.  In the
+   *externally-witnessed* case, byte recomputation alone does not close
+   the loop — the property also depends on a step that could not have
+   been skipped or backdated by the operator, such as a timestamp or
+   inclusion proof from a system the operator does not control (e.g. an
+   on-chain anchor, or a SCITT receipt as described in Section 10).
+   This is not an additional preimage field: it is a statement about how
+   conformance to this section is established, not about what is hashed.
+
+10.  Interoperability Considerations
+
+   action_ref is compatible with SCITT transparency logs [RFC9943] as an
+   anchoring layer.  A SCITT-enabled system can treat action_ref as the
+   payload hash submitted to a Transparency Service: the resulting COSE
+   Receipt [RFC9942] provides a signed inclusion proof over the same
+   content-addressed identifier defined in this specification.  The on-
+   chain anchor described in Section 10.1 serves the same purpose: both
+   bind a content-addressed identifier to evidence of existence held by
+   a system the operator does not control.  The on-chain variant does
+   not require a Transparency Service deployment.  Hardware-backed
+   endorsement is a property of particular Transparency Service
+   profiles, for example [I-D.ietf-scitt-receipts-ccf-profile], not of
+   the SCITT architecture itself.  Neither mechanism shows that a set of
+   anchored actions is complete: each proves that one identifier
+   existed, not that no other action occurred.  Implementers operating
+   within SCITT-enabled infrastructure MAY substitute a SCITT receipt
+   for the on-chain anchor without changing the action_ref derivation
+   algorithm or the receipt envelope structure defined in this document.
+
+
+
+
+
+
+
+
+
+Etcheverry & Ives         Expires 26 April 2027                [Page 15]
+
+Internet-Draft              Action Reference                October 2026
+
+
+10.1.  On-chain Anchoring (Informative)
+
+   The reference implementation [argentum-core] anchors action_ref
+   values in AnchorRegistry, a permissionless contract deployed with
+   CREATE2 at 0x49fEcA52bC634a9Ab773226D16619deC547794aa (the same
+   address on Base, Arbitrum and Ink).  A call to anchor(bytes32 ref)
+   (selector 0xeecdf927) emits Anchored(bytes32 indexed ref, address
+   indexed anchoredBy, uint256 timestamp), where ref is the action_ref
+   digest.
+
+   A verifier can check such an anchor offline from three artefacts: the
+   block header, the transaction receipt, and the receipt's Merkle-
+   Patricia proof under the header's receiptsRoot.  The header hashes to
+   the block hash, the proof places the receipt in that block, and the
+   receipt carries the Anchored event for the digest.  Whether the block
+   is part of the chain's canonical history is a single lookup by block
+   hash against any node of that chain.  An independent verifier
+   implementing this procedure is listed in Section 11.
+
+   The anchoredBy address records who submitted the anchor.  It is not
+   an operator of the mechanism, and it is not evidence that the
+   submitter is independent of the emitter.
+
+10.2.  Composed Attestation Across Independent Producers
+
+   A worked example (<https://github.com/giskard09/composed-attestation-
+   3leg-worked-example>) demonstrates three independently produced
+   references that each make a claim about the same example artifact,
+   without any of the three deriving from, depending on, or attesting to
+   the other two.  Each leg is cited by the identifier its own producer
+   publishes:
+
+   *  A transparent-execution leg (WYRIWE): a deployed Sepolia contract
+      at 0x3f98686f2D286A95435BA5916ec663219BE387Ad, checkable via a
+      read-only call to verify(bytes32 inputHash, bytes32 outputHash,
+      bytes calldata_, bytes context) returns (bool) (selector
+      0xfc2b4271) against input hash
+      cfacbfe211cf3be67a1d64a6499a2af0ae475e2c0965c2a42f969d243df2b6cd —
+      no transaction of its own; verification is a live contract read,
+      not an anchored write.  A complete, reproducible eth_call against
+      this signature — full ABI-encoded calldata and the expected return
+      value — is given below.
+
+   *  An action_ref leg (this specification): anchored on Base mainnet,
+      transaction
+      0x723b18539f186c1b6dd904d51f832f6d3d103c4daef2f8e29590ec8d10dda353,
+      block 49623528.
+
+
+
+
+Etcheverry & Ives         Expires 26 April 2027                [Page 16]
+
+Internet-Draft              Action Reference                October 2026
+
+
+   *  An attested-decision leg (invinoveritas): ledger entry #236,
+      independently recomputable via the platform's POST /verify-proof
+      endpoint, which recomputes the entry's Schnorr signature against
+      its published key without requiring trust in either other leg.
+
+   All three legs share the claim of covering the same example artifact.
+   This is a claim made by the worked example, not a cryptographic
+   cross-index between the three identifiers above: no field in any one
+   leg's preimage references either of the other two, and none was
+   constructed to.  Accordingly, no leg attests for another — each
+   identifier is independently checkable strictly on its own terms, and
+   a verifier who trusts only one producer can still fully verify that
+   producer's leg without relying on the other two.
+
+   The following is a complete, reproducible example of the leg 1 check:
+   an eth_call to 0x3f98686f2D286A95435BA5916ec663219BE387Ad on Sepolia
+   (chain ID 11155111) invoking verify(bytes32,bytes32,bytes,bytes)
+   (selector 0xfc2b4271) with inputHash = the input hash above,
+   outputHash = the leg's actionCommitment
+   (5b5ec31c336cc8f95dc6d9025d1d008c6ed2cd5067b9c421b1d36927e230173a),
+   calldata_ = the raw Multicall3 aggregate3([]) call whose keccak-256
+   equals inputHash, and context = the 224-byte 7-field PolicyAction
+   preimage (chainId, domainId, agentId, target, value, callDataHash,
+   actionNonce) whose keccak-256 equals outputHash.  The full ABI-
+   encoded calldata for this call, as a single concatenated data field
+   (516 bytes / 1032 hex characters total: a 4-byte selector followed by
+   16 32-byte words), shown here split into fixed-width words for
+   readability:
+
+   0xfc2b4271
+   cfacbfe211cf3be67a1d64a6499a2af0ae475e2c0965c2a42f969d243df2b6cd
+   5b5ec31c336cc8f95dc6d9025d1d008c6ed2cd5067b9c421b1d36927e230173a
+   0000000000000000000000000000000000000000000000000000000000000080
+   0000000000000000000000000000000000000000000000000000000000000100
+   0000000000000000000000000000000000000000000000000000000000000044
+   82ad56cb00000000000000000000000000000000000000000000000000000000
+   0000002000000000000000000000000000000000000000000000000000000000
+   0000000000000000000000000000000000000000000000000000000000000000
+   00000000000000000000000000000000000000000000000000000000000000e0
+   0000000000000000000000000000000000000000000000000000000000aa36a7
+   16079127bc55bd85d480837115b9bd82d26f03809c0bc4c6c80f7220836afad0
+   000000000000000000000000000000000000000000000000000000000000d640
+   000000000000000000000000ca11bde05977b3631167028862be2a173976ca11
+   0000000000000000000000000000000000000000000000000000000000000000
+   cfacbfe211cf3be67a1d64a6499a2af0ae475e2c0965c2a42f969d243df2b6cd
+   0000000000000000000000000000000000000000000000000000000000000005
+
+
+
+
+
+Etcheverry & Ives         Expires 26 April 2027                [Page 17]
+
+Internet-Draft              Action Reference                October 2026
+
+
+   Expected return value: true.  Passing any outputHash other than the
+   actionCommitment above returns false — the contract is not constant-
+   true.
+
+   The context blob, in order, is: chainId (0xaa36a7 = 11155111,
+   Sepolia), domainId (32-byte digest
+   0x16079127bc55bd85d480837115b9bd82d26f03809c0bc4c6c80f7220836afad0),
+   agentId (0xd640 = 54848), target
+   (0xcA11bde05977b3631167028862bE2a173976CA11, Multicall3), value (0),
+   callDataHash (equal to inputHash above), actionNonce (5).
+
+   This composition is independently authored: each leg was produced and
+   is maintained by a different party, with no shared control over
+   derivation or timing.  It is not offered as mechanically proven
+   independence — that would require a property none of the three
+   artifacts encodes — but as three separately checkable claims about a
+   common example, held together only by the worked example's own
+   assertion that they concern the same artifact.
+
+11.  Implementation Status
+
+   [Note to the RFC Editor: please remove this section before
+   publication, together with the reference to RFC 7942.]
+
+   This section records the status of known implementations of this
+   specification at the time of posting, following [RFC7942].  Listing
+   an implementation is not an endorsement of it, and the information
+   was provided by, or taken from public records of, the implementers.
+   Unless stated otherwise, each implementation covers the action-ref-
+   v1-jcs-sha256 derivation (Section 3).
+
+   *  *argentum-core reference (Rama).* verify.py and verify.mjs in
+      every conformance directory; stable tags action-ref-v1.0 and
+      action-ref-v2.0; AnchorRegistry anchoring (Section 10.1).  Apache-
+      2.0.  <https://github.com/giskard09/argentum-core>
+
+   *  *action-ref-conformance (Composable Evidence Criteria lab, LF
+      Decentralized Trust).* A GitHub Action that checks an
+      implementation against the frozen action-ref-v1-jcs-sha256
+      profile, with portable manifests of 13 v1 vectors and 6 domain-
+      separated v2 vectors.  Apache-2.0.  <https://github.com/
+      Composable-Evidence-Criteria/action-ref-conformance>
+
+   *  *flareclaw-verifier (whawk46).* Passes the pinned conformance
+      Action, verified run 30819828942 (2026-08-03), as recorded in
+      argentum-core PROVIDERS.md.
+
+
+
+
+
+Etcheverry & Ives         Expires 26 April 2027                [Page 18]
+
+Internet-Draft              Action Reference                October 2026
+
+
+   *  *Agent Passport System SDK (aeoess).* The external action-ref v1
+      helper (computeExternalActionRefV1) passes the eight vectors of
+      the pinned conformance Action in CI, run 37103514980 (2026-10-03).
+      This covers that helper only.
+
+   *  *AgentGraph (agentgraph-co).* An independent author-set of seven
+      vectors, reproduced with the rfc8785 Python library and Node
+      built-ins, including Vector 1 of Appendix "Appendix A.  Test
+      Vectors".
+
+   *  *AgentAvow (Kenne Ives).* A JCS comparison-semantics author-set
+      produced with the rfc8785 reference library (canonicalisation
+      identifier jcs-rfc8785-v1), independent of the trail set in this
+      repository.
+
+   *  *SafeAgent (azender1) and AgentOracle with AgentTrust
+      (TKCollective).* Listed in argentum-core PROVIDERS.md as a
+      Verified Provider and a Declared Provider respectively, with
+      merged conformance sets and production trails since June 2026.
+
+   *  *AXES reference tooling (Magentix AI).* An independent
+      recomputation, using the AXES RFC 8785 path, of the 13 v1 vectors
+      (all verdicts and reject reasons) and the 6 v2 vectors (all
+      verdicts) in the action-ref-conformance manifests, run on
+      2026-10-23.  Separately, an offline verifier for AnchorRegistry
+      anchors (profile axes:anchor_registry_bytes32@1) that verifies the
+      argentum-core anchor in Base mainnet block 48936665.  Apache-2.0.
+      <https://github.com/magentixai/axes>.  This entry was contributed
+      by Magentix AI, a committer of the Composable Evidence Criteria
+      lab.
+
+12.  IANA Considerations
+
+   This document has no IANA actions.
+
+13.  References
+
+13.1.  Normative References
+
+   [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
+              Requirement Levels", BCP 14, RFC 2119,
+              DOI 10.17487/RFC2119, March 1997,
+              <https://www.rfc-editor.org/info/rfc2119>.
+
+   [RFC8174]  Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC
+              2119 Key Words", BCP 14, RFC 8174, DOI 10.17487/RFC8174,
+              May 2017, <https://www.rfc-editor.org/info/rfc8174>.
+
+
+
+
+Etcheverry & Ives         Expires 26 April 2027                [Page 19]
+
+Internet-Draft              Action Reference                October 2026
+
+
+   [RFC8785]  Rundgren, A., Jordan, B., and S. Erdtman, "JSON
+              Canonicalization Scheme (JCS)", RFC 8785,
+              DOI 10.17487/RFC8785, June 2020,
+              <https://www.rfc-editor.org/info/rfc8785>.
+
+   [RFC3339]  Klyne, G. and C. Newman, "Date and Time on the Internet:
+              Timestamps", RFC 3339, DOI 10.17487/RFC3339, July 2002,
+              <https://www.rfc-editor.org/info/rfc3339>.
+
+13.2.  Informative References
+
+   [argentum-core]
+              Giskard, R., "argentum-core: Mycelium Trails Reference
+              Implementation and Conformance Suite", 2026,
+              <https://github.com/giskard09/argentum-core>.
+
+   [CTEF]     kenneives, K., "Composable Trust Evaluation Framework
+              (CTEF)", 2026,
+              <https://github.com/kenneives/agent-graph-toolkit>.
+
+   [AgentGraph-EvidenceAnchor]
+              kenneives, K., "evidence-anchor-static-analysis-v0: Static
+              analysis conformance set for action_ref", June 2026,
+              <https://github.com/agentgraph-co/agentgraph>.
+
+   [RFC9943]  Birkholz, H., Delignat-Lavaud, A., Fournet, C., Deshpande,
+              Y., and S. Lasker, "An Architecture for Trustworthy and
+              Transparent Digital Supply Chains", RFC 9943,
+              DOI 10.17487/RFC9943, June 2026,
+              <https://www.rfc-editor.org/info/rfc9943>.
+
+   [RFC9942]  Steele, O., Birkholz, H., Delignat-Lavaud, A., and C.
+              Fournet, "CBOR Object Signing and Encryption (COSE)
+              Receipts", RFC 9942, DOI 10.17487/RFC9942, June 2026,
+              <https://www.rfc-editor.org/info/rfc9942>.
+
+   [RFC7942]  Sheffer, Y. and A. Farrel, "Improving Awareness of Running
+              Code: The Implementation Status Section", BCP 205,
+              RFC 7942, DOI 10.17487/RFC7942, July 2016,
+              <https://www.rfc-editor.org/info/rfc7942>.
+
+   [I-D.ietf-scitt-receipts-ccf-profile]
+              Birkholz, H., Delignat-Lavaud, A., Fournet, C., and A.
+              Chamayou, "CCF Profile for COSE Receipts", Work in
+              Progress, Internet-Draft, draft-ietf-scitt-receipts-ccf-
+              profile-06, 22 October 2026,
+              <https://datatracker.ietf.org/doc/draft-ietf-scitt-
+              receipts-ccf-profile/>.
+
+
+
+Etcheverry & Ives         Expires 26 April 2027                [Page 20]
+
+Internet-Draft              Action Reference                October 2026
+
+
+Appendix A.  Test Vectors
+
+   All vectors are byte-verified in the conformance suite at
+   <https://github.com/giskard09/argentum-core/tree/main/examples/
+   conformance>.
+
+A.1.  Positive Conformance Vector
+
+   Vector: nexus-oracle-signal (action-ref-v1-baseline)
+
+   agent_id    = "nexus-agent-xa12.onrender.com"
+   action_type = "oracle.signal"
+   scope       = "BTC"
+   timestamp   = "2025-05-18T11:40:31.000Z"
+
+   JCS payload (UTF-8):
+   {"action_type":"oracle.signal","agent_id":"nexus-agent-xa12.on
+   render.com","scope":"BTC","timestamp":"2025-05-18T11:40:31.000Z"}
+
+   action_ref:
+   fdd7f810499f06be24355ca8e2bfb8c4b965cc80c838f41fa074683443d89f5a
+
+A.2.  Negative Conformance Vector — Epoch-Integer Timestamp
+
+   Vector: neg-b01-epoch-integer (recompute-drift-v1)
+
+   Same action as A.1, but timestamp hashed as epoch-ms integer
+   instead of RFC 3339 string. Produces a different digest.
+
+   Non-conformant preimage (epoch-ms as integer — DO NOT USE):
+   {"action_type":"oracle.signal","agent_id":"nexus-agent-xa12.on
+   render.com","scope":"BTC","timestamp":1747568431000}
+
+   A verifier recomputing from the RFC 3339 string will obtain
+   a different hash and correctly reject the receipt.
+
+A.3. authorization_ref Vector
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Etcheverry & Ives         Expires 26 April 2027                [Page 21]
+
+Internet-Draft              Action Reference                October 2026
+
+
+   Vector: step_2b_authorization_ref (guardrail-provider-v1)
+
+   action_ref       = "104812928eb50e0e1ad28f379f8ade03ea0f479ac7abd1b
+                       bf9205e9317665c7f"
+   authorized_scope = "autogen:guardrail"
+   decision_ts      = 1749513600000
+   policy_id        = "guardrail-policy-v1"
+
+   JCS payload:
+   {"action_ref":"104812928eb50e0e1ad28f379f8ade03ea0f479ac7abd1bbf920
+   5e9317665c7f","authorized_scope":"autogen:guardrail","decision_ts":
+   1749513600000,"policy_id":"guardrail-policy-v1"}
+
+   authorization_ref:
+   b9f8494a4a5943687d105769556be2963271e37f2216d2afd279e5b260261327
+
+Appendix A.4.  External Conformance Set — evidence-anchor-static-
+analysis-v0
+
+   Contributed by: AgentGraph (agentgraph-co/agentgraph, kenneives).
+
+   This conformance set anchors static analysis findings from an agent-
+   ecosystem endpoint scan (35,689 endpoints; June 2026) to verifiable
+   action_ref identifiers.  It contains 4 byte-verified vectors covering
+   three invariants:
+
+   1.  *Scan-attest anchor:* a scan.attest action from a did:web scanner
+       agent produces a stable action_ref independently recomputable by
+       any verifier without registry access.
+
+   2.  *Cross-implementation byte match:* the spec's Appendix A Vector 1
+       (nexus-oracle-signal, fdd7f810…) reproduces byte-for-byte using
+       the rfc8785 Python library and Node built-ins — two independent
+       implementation lineages agreeing on the same digest.
+
+   3.  *Live ecosystem seam:* the payment-charge vector's action_ref is
+       identical to the one carried in AgentGraph's v0.4 pre-execution-
+       verdict-v0 verifier fixture, where it is byte-matched across the
+       haroldmalikfrimpong-ops / evidai / azender1 payment seam — this
+       derivation is exercised live, not only specified.
+
+   All 4 vectors are byte-verified in the conformance directory at
+   <https://github.com/agentgraph-co/agentgraph>.  The set was
+   contributed under AGT PR #21 (evidence-anchor-static-analysis-v0,
+   merged 2026-06-24).
+
+
+
+
+
+
+Etcheverry & Ives         Expires 26 April 2027                [Page 22]
+
+Internet-Draft              Action Reference                October 2026
+
+
+Appendix B.  Field Mapping for Existing Systems
+
+   Systems that have adopted action_ref derivation or compatible
+   primitives:
+
+   +==============+==========+====================+====================+
+   |System        |agent_id  |action_type mapping |Notes               |
+   |              |mapping   |                    |                    |
+   +==============+==========+====================+====================+
+   |SafeAgent     |agent     |claim type          |Joint spec argentum-|
+   |(azender1)    |identifier|                    |core #7             |
+   +--------------+----------+--------------------+--------------------+
+   |Graph Advocate|wallet    |counterparty event  |counterparty-ref-v1,|
+   |(PaulieB14)   |address   |type                |production          |
+   |              |(EIP-55)  |                    |                    |
+   +--------------+----------+--------------------+--------------------+
+   |AgentOracle/  |issuer DID|oracle action type  |Two issuers, cross- |
+   |AgentTrust    |          |                    |issuer property     |
+   |(TKCollective)|          |                    |                    |
+   +--------------+----------+--------------------+--------------------+
+   |CTEF ([CTEF]) |agent     |evaluation action   |action_ref REQUIRED |
+   |              |graph node|                    |in v0.4             |
+   |              |ID        |                    |                    |
+   +--------------+----------+--------------------+--------------------+
+   |presidio-x402 |screening |presidio:x402.screen|PII screening,      |
+   |(vstantch)    |agent ID  |                    |composition         |
+   +--------------+----------+--------------------+--------------------+
+
+                                  Table 3
+
+Authors' Addresses
+
+   Pablo Etcheverry
+   Rama
+   Email: playplay2736@gmail.com
+   URI:   https://github.com/giskard09/argentum-core
+
+
+   Kenne Ives
+   Email: kennethives@gmail.com
+
+
+
+
+
+
+
+
+
+
+
+Etcheverry & Ives         Expires 26 April 2027                [Page 23]
