@@ -1,5 +1,17 @@
 # Changelog
 
+## draft-etcheverry-action-ref-05 (proposed)
+
+- 2026-10-23 — Section 11 (Implementation Status): renamed AgentOracle to Tanilo in the three prose
+  references (the conformance-set path `examples/conformance/agentoracle-v1/` is left unchanged, per
+  TKCollective). Split the combined SafeAgent/TKCollective bullet in two: SafeAgent's "production
+  trails since June 2026" claim is unchanged; the Tanilo/AgentTrust entry drops that phrase and
+  instead points to TKCollective's own disclosure (tanilo.io/trust) for the verification limits on
+  some historical receipts, so the entry doesn't imply more than TKCollective's own cited evidence
+  supports.
+- Requested by TKCollective (giskard09/draft-etcheverry-action-ref#11); for the authors to accept,
+  change or drop.
+
 ## draft-etcheverry-action-ref-04 (proposed)
 
 - 2026-10-23 - Section 10 cites SCITT as RFC 9943 and COSE Receipts as RFC 9942 (both published June 2026); the
