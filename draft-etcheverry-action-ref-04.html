@@ -1,0 +1,2826 @@
+<!DOCTYPE html>
+<html lang="en" class="Internet-Draft">
+<head>
+<meta charset="utf-8">
+<meta content="Common,Latin" name="scripts">
+<meta content="initial-scale=1.0" name="viewport">
+<title>Action Reference: A Deterministic Identifier for Agent Actions</title>
+<meta content="Pablo Etcheverry" name="author">
+<meta content="Kenne Ives" name="author">
+<meta content='
+       
+        This document defines "action_ref", a deterministic, content-addressed
+        identifier for autonomous agent actions. Any party holding the four
+        preimage fields (agent_id, action_type, scope, timestamp) can
+        independently compute and verify the identifier without trusting the
+        emitting system. The document specifies the derivation algorithm,
+        canonical serialization using RFC 8785 JSON Canonicalization Scheme
+        (JCS), timestamp format requirements, canonical receipt envelope,
+        optional fields for revocation and policy rotation auditability, scope
+        conventions, and a composability model with existing exactly-once
+        execution guarantees.
+       
+    ' name="description">
+<meta content="xml2rfc 3.34.1" name="generator">
+<meta content="agent" name="keyword">
+<meta content="action" name="keyword">
+<meta content="audit" name="keyword">
+<meta content="content-addressed" name="keyword">
+<meta content="accountability" name="keyword">
+<meta content="JCS" name="keyword">
+<meta content="RFC 8785" name="keyword">
+<meta content="draft-etcheverry-action-ref-04" name="ietf.draft">
+<!-- Generator version information:
+  xml2rfc 3.34.1
+    Python 3.12.10
+    ConfigArgParse 1.8.0
+    google-i18n-address 3.1.1
+    intervaltree 3.2.1
+    Jinja2 3.1.6
+    lxml 6.1.3
+    natsort 8.4.0
+    platformdirs 4.13.5
+    pycountry 26.2.16
+    PyYAML 6.0.3
+    requests 2.34.2
+    wcwidth 0.9.3
+-->
+<link href="draft-etcheverry-action-ref-04.xml" rel="alternate" type="application/rfc+xml">
+<link href="#copyright" rel="license">
+<style type="text/css">/*
+
+  NOTE: Changes at the bottom of this file overrides some earlier settings.
+
+  Once the style has stabilized and has been adopted as an official RFC style,
+  this can be consolidated so that style settings occur only in one place, but
+  for now the contents of this file consists first of the initial CSS work as
+  provided to the RFC Formatter (xml2rfc) work, followed by itemized and
+  commented changes found necessary during the development of the v3
+  formatters.
+
+*/
+
+/* fonts */
+@import url('https://static.ietf.org/fonts/noto-sans/import.css'); /* Sans-serif */
+@import url('https://static.ietf.org/fonts/noto-serif/import.css'); /* Serif (print) */
+@import url('https://static.ietf.org/fonts/roboto-mono/import.css'); /* Monospace */
+
+:root {
+  --font-sans: 'Noto Sans', Arial, Helvetica, sans-serif;
+  --font-serif: 'Noto Serif', 'Times', 'Times New Roman', serif;
+  --font-mono: 'Roboto Mono', Courier, 'Courier New', monospace;
+}
+
+@viewport {
+  zoom: 1.0;
+}
+@-ms-viewport {
+  width: extend-to-zoom;
+  zoom: 1.0;
+}
+/* general and mobile first */
+html {
+}
+body {
+  max-width: 90%;
+  margin: 1.5em auto;
+  color: #222;
+  background-color: #fff;
+  font-size: 14px;
+  font-family: var(--font-sans);
+  line-height: 1.6;
+  scroll-behavior: smooth;
+  overflow-wrap: break-word;
+}
+.ears {
+  display: none;
+}
+
+/* headings */
+#title, h1, h2, h3, h4, h5, h6 {
+  margin: 1em 0 0.5em;
+  font-weight: bold;
+  line-height: 1.3;
+}
+#title {
+  clear: both;
+  border-bottom: 1px solid #ddd;
+  margin: 0 0 0.5em 0;
+  padding: 1em 0 0.5em;
+}
+.author {
+  padding-bottom: 4px;
+}
+h1 {
+  font-size: 26px;
+  margin: 1em 0;
+}
+h2 {
+  font-size: 22px;
+  margin-top: -20px;  /* provide offset for in-page anchors */
+  padding-top: 33px;
+}
+h3 {
+  font-size: 18px;
+  margin-top: -36px;  /* provide offset for in-page anchors */
+  padding-top: 42px;
+}
+h4 {
+  font-size: 16px;
+  margin-top: -36px;  /* provide offset for in-page anchors */
+  padding-top: 42px;
+}
+h5, h6 {
+  font-size: 14px;
+}
+#n-copyright-notice {
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 1em;
+  margin-bottom: 1em;
+}
+/* general structure */
+p {
+  padding: 0;
+  margin: 0 0 1em 0;
+  text-align: left;
+}
+div, span {
+  position: relative;
+}
+div {
+  margin: 0;
+}
+.alignRight.art-text {
+  background-color: #f9f9f9;
+  border: 1px solid #eee;
+  border-radius: 3px;
+  padding: 1em 1em 0;
+  margin-bottom: 1.5em;
+}
+.alignRight.art-text pre {
+  padding: 0;
+}
+.alignRight {
+  margin: 1em 0;
+}
+.alignRight > *:first-child {
+  border: none;
+  margin: 0;
+  float: right;
+  clear: both;
+}
+.alignRight > *:nth-child(2) {
+  clear: both;
+  display: block;
+  border: none;
+}
+svg {
+  display: block;
+}
+@media print {
+  svg {
+    max-height: 850px;
+    max-width: 660px;
+  }
+}
+svg[font-family~="serif" i], svg [font-family~="serif" i] {
+  font-family: var(--font-serif);
+}
+svg[font-family~="sans-serif" i], svg [font-family~="sans-serif" i] {
+  font-family: var(--font-sans);
+}
+svg[font-family~="monospace" i], svg [font-family~="monospace" i] {
+  font-family: var(--font-mono);
+}
+.alignCenter.art-text {
+  background-color: #f9f9f9;
+  border: 1px solid #eee;
+  border-radius: 3px;
+  padding: 1em 1em 0;
+  margin-bottom: 1.5em;
+}
+.alignCenter.art-text pre {
+  padding: 0;
+}
+.alignCenter {
+  margin: 1em 0;
+}
+.alignCenter > *:first-child {
+  display: table;
+  border: none;
+  margin: 0 auto;
+}
+
+/* lists */
+ol, ul {
+  padding: 0;
+  margin: 0 0 1em 2em;
+}
+ol ol, ul ul, ol ul, ul ol {
+  margin-left: 1em;
+}
+li {
+  margin: 0 0 0.25em 0;
+}
+.ulCompact li {
+  margin: 0;
+}
+ul.empty, .ulEmpty {
+  list-style-type: none;
+}
+ul.empty li, .ulEmpty li {
+  margin-top: 0.5em;
+}
+ul.ulBare, li.ulBare {
+  margin-left: 0em !important;
+}
+ul.compact, .ulCompact,
+ol.compact, .olCompact {
+  line-height: 100%;
+  margin: 0 0 0 2em;
+}
+
+/* definition lists */
+dl {
+}
+dl > dt {
+  float: left;
+  margin-right: 1em;
+}
+/* 
+dl.nohang > dt {
+  float: none;
+}
+*/
+dl > dd {
+  margin-bottom: .8em;
+  min-height: 1.3em;
+}
+dl.compact > dd, .dlCompact > dd {
+  margin-bottom: 0em;
+}
+dl > dd > dl {
+  margin-top: 0.5em;
+  margin-bottom: 0em;
+}
+
+/* links */
+a {
+  text-decoration: none;
+}
+a[href] {
+  color: #22e; /* Arlen: WCAG 2019 */
+}
+a[href]:hover {
+  background-color: #f2f2f2;
+}
+figcaption a[href],
+a[href].selfRef {
+  color: #222;
+}
+/* XXX probably not this:
+a.selfRef:hover {
+  background-color: transparent;
+  cursor: default;
+} */
+
+/* Figures */
+tt, code, pre {
+  background-color: #f9f9f9;
+  font-family: var(--font-mono);
+}
+pre {
+  border: 1px solid #eee;
+  margin: 0;
+  padding: 1em;
+}
+img {
+  max-width: 100%;
+}
+figure {
+  margin: 0;
+}
+figure blockquote {
+  margin: 0.8em 0.4em 0.4em;
+}
+figcaption {
+  font-style: italic;
+  margin: 0 0 1em 0;
+}
+@media screen {
+  pre {
+    overflow-x: auto;
+    max-width: 100%;
+    max-width: calc(100% - 22px);
+  }
+}
+
+/* aside, blockquote */
+aside, blockquote {
+  margin-left: 0;
+  padding: 1.2em 2em;
+}
+blockquote {
+  background-color: #f9f9f9;
+  color: #111; /* Arlen: WCAG 2019 */
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  margin: 1em 0;
+}
+blockquote > *:last-child {
+  margin-bottom: 0;
+}
+cite {
+  display: block;
+  text-align: right;
+  font-style: italic;
+}
+.xref {
+  overflow-wrap: normal;
+}
+
+/* tables */
+table {
+  width: 100%;
+  margin: 0 0 1em;
+  border-collapse: collapse;
+  border: 1px solid #eee;
+}
+th, td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.5em 0.75em;
+}
+th {
+  text-align: left;
+  background-color: #e9e9e9;
+}
+tr:nth-child(2n+1) > td {
+  background-color: #f5f5f5;
+}
+table caption {
+  font-style: italic;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+}
+table p {
+  /* XXX to avoid bottom margin on table row signifiers. If paragraphs should
+     be allowed within tables more generally, it would be far better to select on a class. */
+  margin: 0;
+}
+sub,
+sup {
+ white-space: nowrap;
+}
+
+/* pilcrow */
+a.pilcrow {
+  color: #666; /* Arlen: AHDJ 2019 */
+  text-decoration: none;
+  visibility: hidden;
+  user-select: none;
+  -ms-user-select: none;
+  -o-user-select:none;
+  -moz-user-select: none;
+  -khtml-user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+@media screen {
+  aside:hover > a.pilcrow,
+  p:hover > a.pilcrow,
+  blockquote:hover > a.pilcrow,
+  div:hover > a.pilcrow,
+  li:hover > a.pilcrow,
+  pre:hover > a.pilcrow {
+    visibility: visible;
+  }
+  a.pilcrow:hover {
+    background-color: transparent;
+  }
+}
+
+/* misc */
+hr {
+  border: 0;
+  border-top: 1px solid #eee;
+}
+.bcp14 {
+  font-variant: small-caps;
+}
+
+.role {
+  font-variant: all-small-caps;
+}
+
+/* info block */
+#identifiers {
+  margin: 0;
+  font-size: 0.9em;
+}
+#identifiers dt {
+  width: 3em;
+  clear: left;
+}
+#identifiers dd {
+  float: left;
+  margin-bottom: 0;
+}
+/* Fix PDF info block run off issue */
+@media print {
+  #identifiers dd {
+    max-width: 100%;
+  }
+}
+#identifiers .authors .author {
+  display: inline-block;
+  margin-right: 1.5em;
+}
+#identifiers .authors .org {
+  font-style: italic;
+}
+
+/* The prepared/rendered info at the very bottom of the page */
+.docInfo {
+  color: #666; /* Arlen: WCAG 2019 */
+  font-size: 0.9em;
+  font-style: italic;
+  margin-top: 2em;
+}
+.docInfo .prepared {
+  float: left;
+}
+.docInfo .prepared {
+  float: right;
+}
+
+/* table of contents */
+#toc  {
+  padding: 0.75em 0 2em 0;
+  margin-bottom: 1em;
+}
+nav.toc ul {
+  margin: 0 0.5em 0 0;
+  padding: 0;
+  list-style: none;
+}
+nav.toc li {
+  line-height: 1.3em;
+  margin: 0.75em 0;
+  padding-left: 1.2em;
+  text-indent: -1.2em;
+}
+/* references */
+.references dt {
+  text-align: right;
+  font-weight: bold;
+  min-width: 7em;
+}
+.references dd {
+  margin-left: 8em;
+  overflow: auto;
+}
+
+.refInstance {
+  margin-bottom: 1.25em;
+}
+
+.refSubseries {
+  margin-bottom: 1.25em;
+}
+
+.references .ascii {
+  margin-bottom: 0.25em;
+}
+
+/* index */
+.index ul {
+  margin: 0 0 0 1em;
+  padding: 0;
+  list-style: none;
+}
+.index ul ul {
+  margin: 0;
+}
+.index li {
+  margin: 0;
+  text-indent: -2em;
+  padding-left: 2em;
+  padding-bottom: 5px;
+}
+.indexIndex {
+  margin: 0.5em 0 1em;
+}
+.index a {
+  font-weight: 700;
+}
+/* make the index two-column on all but the smallest screens */
+@media (min-width: 600px) {
+  .index ul {
+    -moz-column-count: 2;
+    -moz-column-gap: 20px;
+  }
+  .index ul ul {
+    -moz-column-count: 1;
+    -moz-column-gap: 0;
+  }
+}
+
+/* authors */
+address.vcard {
+  font-style: normal;
+  margin: 1em 0;
+}
+
+address.vcard .nameRole {
+  font-weight: 700;
+  margin-left: 0;
+}
+address.vcard .label {
+  font-family: var(--font-sans);
+  margin: 0.5em 0;
+}
+address.vcard .type {
+  display: none;
+}
+.alternative-contact {
+  margin: 1.5em 0 1em;
+}
+hr.addr {
+  border-top: 1px dashed;
+  margin: 0;
+  color: #ddd;
+  max-width: calc(100% - 16px);
+}
+
+/* temporary notes */
+.rfcEditorRemove::before {
+  position: absolute;
+  top: 0.2em;
+  right: 0.2em;
+  padding: 0.2em;
+  content: "The RFC Editor will remove this note";
+  color: #9e2a00; /* Arlen: WCAG 2019 */
+  background-color: #ffd; /* Arlen: WCAG 2019 */
+}
+.rfcEditorRemove {
+  position: relative;
+  padding-top: 1.8em;
+  background-color: #ffd; /* Arlen: WCAG 2019 */
+  border-radius: 3px;
+}
+.cref {
+  background-color: #ffd; /* Arlen: WCAG 2019 */
+  padding: 2px 4px;
+}
+.crefSource {
+  font-style: italic;
+}
+/* alternative layout for smaller screens */
+@media screen and (max-width: 1023px) {
+  body {
+    padding-top: 2em;
+  }
+  #title {
+    padding: 1em 0;
+  }
+  h1 {
+    font-size: 24px;
+  }
+  h2 {
+    font-size: 20px;
+    margin-top: -18px;  /* provide offset for in-page anchors */
+    padding-top: 38px;
+  }
+  #identifiers dd {
+    max-width: 60%;
+  }
+  #toc {
+    position: fixed;
+    z-index: 2;
+    top: 0;
+    right: 0;
+    padding: 0;
+    margin: 0;
+    background-color: inherit;
+    border-bottom: 1px solid #ccc;
+  }
+  #toc h2 {
+    margin: -1px 0 0 0;
+    padding: 4px 0 4px 6px;
+    padding-right: 1em;
+    min-width: 190px;
+    font-size: 1.1em;
+    text-align: right;
+    background-color: #444;
+    color: white;
+    cursor: pointer;
+  }
+  #toc h2::before { /* css hamburger */
+    float: right;
+    position: relative;
+    width: 1em;
+    height: 1px;
+    left: -164px;
+    margin: 6px 0 0 0;
+    background: white none repeat scroll 0 0;
+    box-shadow: 0 4px 0 0 white, 0 8px 0 0 white;
+    content: "";
+  }
+  #toc nav {
+    display: none;
+    padding: 0.5em 1em 1em;
+    overflow: auto;
+    height: calc(100vh - 48px);
+    border-left: 1px solid #ddd;
+  }
+}
+
+/* alternative layout for wide screens */
+@media screen and (min-width: 1024px) {
+  body {
+    max-width: 724px;
+    margin: 42px auto;
+    padding-left: 1.5em;
+    padding-right: 29em;
+  }
+  #toc {
+    position: fixed;
+    top: 42px;
+    right: 42px;
+    width: 25%;
+    margin: 0;
+    padding: 0 1em;
+    z-index: 1;
+  }
+  #toc h2 {
+    border-top: none;
+    border-bottom: 1px solid #ddd;
+    font-size: 1em;
+    font-weight: normal;
+    margin: 0;
+    padding: 0.25em 1em 1em 0;
+  }
+  #toc nav {
+    display: block;
+    height: calc(90vh - 84px);
+    bottom: 0;
+    padding: 0.5em 0 0;
+    overflow: auto;
+  }
+  img { /* future proofing */
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* pagination */
+@media print {
+  body {
+    width: 100%;
+  }
+  p {
+    orphans: 3;
+    widows: 3;
+  }
+  #n-copyright-notice {
+    border-bottom: none;
+  }
+  #toc, #n-introduction {
+    page-break-before: always;
+  }
+  #toc {
+    border-top: none;
+    padding-top: 0;
+  }
+  figure, pre {
+    page-break-inside: avoid;
+  }
+  figure {
+    overflow: scroll;
+  }
+  .breakable pre {
+    break-inside: auto;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+  }
+  h2+*, h3+*, h4+*, h5+*, h6+* {
+    page-break-before: avoid;
+  }
+  pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 10pt;
+  }
+  table {
+    border: 1px solid #ddd;
+  }
+  td {
+    border-top: 1px solid #ddd;
+  }
+}
+
+/* This is commented out here, as the string-set: doesn't
+   pass W3C validation currently */
+/*
+.ears thead .left {
+  string-set: ears-top-left content();
+}
+
+.ears thead .center {
+  string-set: ears-top-center content();
+}
+
+.ears thead .right {
+  string-set: ears-top-right content();
+}
+
+.ears tfoot .left {
+  string-set: ears-bottom-left content();
+}
+
+.ears tfoot .center {
+  string-set: ears-bottom-center content();
+}
+
+.ears tfoot .right {
+  string-set: ears-bottom-right content();
+}
+*/
+
+@page :first {
+  padding-top: 0;
+  @top-left {
+    content: normal;
+    border: none;
+  }
+  @top-center {
+    content: normal;
+    border: none;
+  }
+  @top-right {
+    content: normal;
+    border: none;
+  }
+}
+
+@page {
+  size: A4;
+  margin-bottom: 45mm;
+  padding-top: 20px;
+  /* The following is commented out here, but set appropriately by in code, as
+     the content depends on the document */
+  /*
+  @top-left {
+    content: 'Internet-Draft';
+    vertical-align: bottom;
+    border-bottom: solid 1px #ccc;
+  }
+  @top-left {
+    content: string(ears-top-left);
+    vertical-align: bottom;
+    border-bottom: solid 1px #ccc;
+  }
+  @top-center {
+    content: string(ears-top-center);
+    vertical-align: bottom;
+    border-bottom: solid 1px #ccc;
+  }
+  @top-right {
+    content: string(ears-top-right);
+    vertical-align: bottom;
+    border-bottom: solid 1px #ccc;
+  }
+  @bottom-left {
+    content: string(ears-bottom-left);
+    vertical-align: top;
+    border-top: solid 1px #ccc;
+  }
+  @bottom-center {
+    content: string(ears-bottom-center);
+    vertical-align: top;
+    border-top: solid 1px #ccc;
+  }
+  @bottom-right {
+      content: '[Page ' counter(page) ']';
+      vertical-align: top;
+      border-top: solid 1px #ccc;
+  }
+  */
+
+}
+
+/* Changes introduced to fix issues found during implementation */
+/* Make sure links are clickable even if overlapped by following H* */
+a {
+  z-index: 2;
+}
+/* Separate body from document info even without intervening H1 */
+section {
+  clear: both;
+}
+
+
+/* Top align author divs, to avoid names without organization dropping level with org names */
+.author {
+  vertical-align: top;
+}
+
+/* Leave room in document info to show Internet-Draft on one line */
+#identifiers dt {
+  width: 8em;
+}
+
+/* Don't waste quite as much whitespace between label and value in doc info */
+#identifiers dd {
+  margin-left: 1em;
+}
+
+/* Give floating toc a background color (needed when it's a div inside section */
+#toc {
+  background-color: white;
+}
+
+/* Make the collapsed ToC header render white on gray also when it's a link */
+@media screen and (max-width: 1023px) {
+  #toc h2 a,
+  #toc h2 a:link,
+  #toc h2 a:focus,
+  #toc h2 a:hover,
+  #toc a.toplink,
+  #toc a.toplink:hover {
+    color: white;
+    background-color: #444;
+    text-decoration: none;
+  }
+}
+
+/* Give the bottom of the ToC some whitespace */
+@media screen and (min-width: 1024px) {
+  #toc {
+    padding: 0 0 1em 1em;
+  }
+}
+
+/* Style section numbers with more space between number and title */
+.section-number {
+  padding-right: 0.5em;
+}
+
+/* prevent monospace from becoming overly large */
+tt, code, pre {
+  font-size: 95%;
+}
+
+/* Fix the height/width aspect for ascii art*/
+.sourcecode pre,
+.art-text pre {
+  line-height: 1.12;
+}
+
+
+/* Add styling for a link in the ToC that points to the top of the document */
+a.toplink {
+  float: right;
+  margin-right: 0.5em;
+}
+
+/* Fix the dl styling to match the RFC 7992 attributes */
+dl > dt,
+dl.dlParallel > dt {
+  float: left;
+  margin-right: 1em;
+}
+dl.dlNewline > dt {
+  float: none;
+}
+
+/* Provide styling for table cell text alignment */
+table td.text-left,
+table th.text-left {
+  text-align: left;
+}
+table td.text-center,
+table th.text-center {
+  text-align: center;
+}
+table td.text-right,
+table th.text-right {
+  text-align: right;
+}
+
+/* Make the alternative author contact information look less like just another
+   author, and group it closer with the primary author contact information */
+.alternative-contact {
+  margin: 0.5em 0 0.25em 0;
+}
+address .non-ascii {
+  margin: 0 0 0 2em;
+}
+
+/* With it being possible to set tables with alignment
+  left, center, and right, { width: 100%; } does not make sense */
+table {
+  width: auto;
+}
+
+/* Avoid reference text that sits in a block with very wide left margin,
+   because of a long floating dt label.*/
+.references dd {
+  overflow: visible;
+}
+
+/* Control caption placement */
+caption {
+  caption-side: bottom;
+}
+
+/* Limit the width of the author address vcard, so names in right-to-left
+   script don't end up on the other side of the page. */
+
+address.vcard {
+  max-width: 30em;
+  margin-right: auto;
+}
+
+/* For address alignment dependent on LTR or RTL scripts */
+address div.left {
+  text-align: left;
+}
+address div.right {
+  text-align: right;
+}
+
+/* Provide table alignment support.  We can't use the alignX classes above
+   since they do unwanted things with caption and other styling. */
+table.right {
+ margin-left: auto;
+ margin-right: 0;
+}
+table.center {
+ margin-left: auto;
+ margin-right: auto;
+}
+table.left {
+ margin-left: 0;
+ margin-right: auto;
+}
+
+/* Give the table caption label the same styling as the figcaption */
+caption a[href] {
+  color: #222;
+}
+
+@media print {
+  .toplink {
+    display: none;
+  }
+
+  /* avoid overwriting the top border line with the ToC header */
+  #toc {
+    padding-top: 1px;
+  }
+
+  /* Avoid page breaks inside dl and author address entries */
+  .vcard {
+    page-break-inside: avoid;
+  }
+
+}
+/* Tweak the bcp14 keyword presentation */
+.bcp14 {
+  font-variant: small-caps;
+  font-weight: bold;
+  font-size: 0.9em;
+}
+/* Tweak the invisible space above H* in order not to overlay links in text above */
+ h2 {
+  margin-top: -18px;  /* provide offset for in-page anchors */
+  padding-top: 31px;
+ }
+ h3 {
+  margin-top: -18px;  /* provide offset for in-page anchors */
+  padding-top: 24px;
+ }
+ h4 {
+  margin-top: -18px;  /* provide offset for in-page anchors */
+  padding-top: 24px;
+ }
+/* Float artwork pilcrow to the right */
+@media screen {
+  .artwork a.pilcrow {
+    display: block;
+    line-height: 0.7;
+    margin-top: 0.15em;
+  }
+}
+/* Make pilcrows on dd visible */
+@media screen {
+  dd:hover > a.pilcrow {
+    visibility: visible;
+  }
+}
+/* Make the placement of figcaption match that of a table's caption
+   by removing the figure's added bottom margin */
+.alignLeft.art-text,
+.alignCenter.art-text,
+.alignRight.art-text {
+   margin-bottom: 0;
+}
+.alignLeft,
+.alignCenter,
+.alignRight {
+  margin: 1em 0 0 0;
+}
+/* In print, the pilcrow won't show on hover, so prevent it from taking up space,
+   possibly even requiring a new line */
+@media print {
+  a.pilcrow {
+    display: none;
+  }
+}
+/* Styling for the external metadata */
+div#external-metadata {
+  background-color: #eee;
+  padding: 0.5em;
+  margin-bottom: 0.5em;
+  display: none;
+}
+div#internal-metadata {
+  padding: 0.5em;                       /* to match the external-metadata padding */
+}
+/* Styling for title RFC Number */
+h1#rfcnum {
+  clear: both;
+  margin: 0 0 -1em;
+  padding: 1em 0 0 0;
+}
+/* Make .olPercent look the same as <ol><li> */
+dl.olPercent > dd {
+  margin-bottom: 0.25em;
+  min-height: initial;
+}
+/* Give aside some styling to set it apart */
+aside {
+  border-left: 1px solid #ddd;
+  margin: 1em 0 1em 2em;
+  padding: 0.2em 2em;
+}
+aside > dl,
+aside > ol,
+aside > ul,
+aside > table,
+aside > p {
+  margin-bottom: 0.5em;
+}
+/* Additional page break settings */
+@media print {
+  figcaption, table caption {
+    page-break-before: avoid;
+  }
+  table {
+    page-break-inside: avoid;
+  }
+}
+/* Font size adjustments for print */
+@media print {
+  body  { font-size: 10pt;      line-height: normal; max-width: 96%; }
+  h1    { font-size: 1.72em;    padding-top: 1.5em; } /* 1*1.2*1.2*1.2 */
+  h2    { font-size: 1.44em;    padding-top: 1.5em; } /* 1*1.2*1.2 */
+  h3    { font-size: 1.2em;     padding-top: 1.5em; } /* 1*1.2 */
+  h4    { font-size: 1em;       padding-top: 1.5em; }
+  h5, h6 { font-size: 1em;      margin: initial; padding: 0.5em 0 0.3em; }
+}
+/* Sourcecode margin in print, when there's no pilcrow */
+@media print {
+  .artwork,
+  .artwork > pre,
+  .sourcecode {
+    margin-bottom: 1em;
+  }
+}
+/* Avoid narrow tables forcing too narrow table captions, which may render badly */
+table {
+  min-width: 20em;
+}
+/* ol type a */
+ol.type-a { list-style-type: lower-alpha; }
+ol.type-A { list-style-type: upper-alpha; }
+ol.type-i { list-style-type: lower-roman; }
+ol.type-I { list-style-type: upper-roman; }
+/* Apply the print table and row borders in general, on request from the RPC,
+and increase the contrast between border and odd row background slightly */
+table {
+  border: 1px solid #ddd;
+}
+td {
+  border-top: 1px solid #ddd;
+}
+tr {
+  break-inside: avoid;
+}
+tr:nth-child(2n+1) > td {
+  background-color: #f8f8f8;
+}
+/* Use style rules to govern display of the TOC. */
+@media screen and (max-width: 1023px) {
+  #toc nav { display: none; }
+  #toc.active nav { display: block; }
+}
+/* Add support for keepWithNext */
+.keepWithNext {
+  break-after: avoid-page;
+  break-after: avoid-page;
+}
+/* Add support for keepWithPrevious */
+.keepWithPrevious {
+  break-before: avoid-page;
+}
+/* Change the approach to avoiding breaks inside artwork etc. */
+figure, pre, table, .artwork, .sourcecode  {
+  break-before: auto;
+  break-after: auto;
+}
+/* Avoid breaks between <dt> and <dd> */
+dl {
+  break-before: auto;
+  break-inside: auto;
+}
+dt {
+  break-before: auto;
+  break-after: avoid-page;
+}
+dd {
+  break-before: avoid-page;
+  break-after: auto;
+  orphans: 3;
+  widows: 3
+}
+span.break, dd.break {
+  margin-bottom: 0;
+  min-height: 0;
+  break-before: auto;
+  break-inside: auto;
+  break-after: auto;
+}
+/* Undo break-before ToC */
+@media print {
+  #toc {
+    break-before: auto;
+  }
+}
+/* Text in compact lists should not get extra bottom margin space,
+   since that would makes the list not compact */
+ul.compact p, .ulCompact p,
+ol.compact p, .olCompact p {
+ margin: 0;
+}
+/* But the list as a whole needs the extra space at the end */
+section ul.compact,
+section .ulCompact,
+section ol.compact,
+section .olCompact {
+  margin-bottom: 1em;                    /* same as p not within ul.compact etc. */
+}
+/* The tt and code background above interferes with for instance table cell
+   backgrounds.  Changed to something a bit more selective. */
+tt, code {
+  background-color: transparent;
+}
+p tt, p code, li tt, li code, dt tt, dt code {
+  background-color: #f8f8f8;
+}
+/* Tweak the pre margin -- 0px doesn't come out well */
+pre {
+   margin-top: 0.5px;
+}
+/* Tweak the compact list text */
+ul.compact, .ulCompact,
+ol.compact, .olCompact,
+dl.compact, .dlCompact {
+  line-height: normal;
+}
+/* Don't add top margin for nested lists */
+li > ul, li > ol, li > dl,
+dd > ul, dd > ol, dd > dl,
+dl > dd > dl {
+  margin-top: initial;
+}
+/* Elements that should not be rendered on the same line as a <dt> */
+/* This should match the element list in writer.text.TextWriter.render_dl() */
+dd > div.artwork:first-child,
+dd > aside:first-child,
+dd > blockquote:first-child,
+dd > figure:first-child,
+dd > ol:first-child,
+dd > div.sourcecode:first-child,
+dd > table:first-child,
+dd > ul:first-child {
+  clear: left;
+}
+/* fix for weird browser behaviour when <dd/> is empty */
+dt+dd:empty::before{
+  content: "\00a0";
+}
+/* Make paragraph spacing inside <li> smaller than in body text, to fit better within the list */
+li > p {
+  margin-bottom: 0.5em
+}
+/* Don't let p margin spill out from inside list items */
+li > p:last-of-type:only-child {
+  margin-bottom: 0;
+}
+</style>
+<link href="rfc-local.css" rel="stylesheet" type="text/css">
+<script type="application/javascript">async function addMetadata(){try{const e=document.styleSheets[0].cssRules;for(let t=0;t<e.length;t++)if(/#identifiers/.exec(e[t].selectorText)){const a=e[t].cssText.replace("#identifiers","#external-updates");document.styleSheets[0].insertRule(a,document.styleSheets[0].cssRules.length)}}catch(e){console.log(e)}const e=document.getElementById("external-metadata");if(e)try{var t,a="",o=function(e){const t=document.getElementsByTagName("meta");for(let a=0;a<t.length;a++)if(t[a].getAttribute("name")===e)return t[a].getAttribute("content");return""}("rfc.number");if(o){t="https://www.rfc-editor.org/rfc/rfc"+o+".json";try{const e=await fetch(t);a=await e.json()}catch(e){t=document.URL.indexOf("html")>=0?document.URL.replace(/html$/,"json"):document.URL+".json";const o=await fetch(t);a=await o.json()}}if(!a)return;e.style.display="block";const s="",d="https://datatracker.ietf.org/doc",n="https://datatracker.ietf.org/ipr/search",c="https://www.rfc-editor.org/info",l=a.doc_id.toLowerCase(),i=a.doc_id.slice(0,3).toLowerCase(),f=a.doc_id.slice(3).replace(/^0+/,""),u={status:"Status",obsoletes:"Obsoletes",obsoleted_by:"Obsoleted By",updates:"Updates",updated_by:"Updated By",see_also:"See Also",errata_url:"Errata"};let h="<dl style='overflow:hidden' id='external-updates'>";["status","obsoletes","obsoleted_by","updates","updated_by","see_also","errata_url"].forEach(e=>{if("status"==e){a[e]=a[e].toLowerCase();var t=a[e].split(" "),o=t.length,w="",p=1;for(let e=0;e<o;e++)p<o?w=w+r(t[e])+" ":w+=r(t[e]),p++;a[e]=w}else if("obsoletes"==e||"obsoleted_by"==e||"updates"==e||"updated_by"==e){var g,m="",b=1;g=a[e].length;for(let t=0;t<g;t++)a[e][t]&&(a[e][t]=String(a[e][t]).toLowerCase(),m=b<g?m+"<a href='"+s+"/rfc/".concat(a[e][t])+"'>"+a[e][t].slice(3)+"</a>, ":m+"<a href='"+s+"/rfc/".concat(a[e][t])+"'>"+a[e][t].slice(3)+"</a>",b++);a[e]=m}else if("see_also"==e){var y,L="",C=1;y=a[e].length;for(let t=0;t<y;t++)if(a[e][t]){a[e][t]=String(a[e][t]);var _=a[e][t].slice(0,3),v=a[e][t].slice(3).replace(/^0+/,"");L=C<y?"RFC"!=_?L+"<a href='"+s+"/info/"+_.toLowerCase().concat(v.toLowerCase())+"'>"+_+" "+v+"</a>, ":L+"<a href='"+s+"/info/"+_.toLowerCase().concat(v.toLowerCase())+"'>"+v+"</a>, ":"RFC"!=_?L+"<a href='"+s+"/info/"+_.toLowerCase().concat(v.toLowerCase())+"'>"+_+" "+v+"</a>":L+"<a href='"+s+"/info/"+_.toLowerCase().concat(v.toLowerCase())+"'>"+v+"</a>",C++}a[e]=L}else if("errata_url"==e){var R="";R=a[e]?R+"<a href='"+a[e]+"'>Errata exist</a> | <a href='"+d+"/"+l+"'>Datatracker</a>| <a href='"+n+"/?"+i+"="+f+"&submit="+i+"'>IPR</a> | <a href='"+c+"/"+l+"'>Info page</a>":"<a href='"+d+"/"+l+"'>Datatracker</a> | <a href='"+n+"/?"+i+"="+f+"&submit="+i+"'>IPR</a> | <a href='"+c+"/"+l+"'>Info page</a>",a[e]=R}""!=a[e]?"Errata"==u[e]?h+=`<dt>More info:</dt><dd>${a[e]}</dd>`:h+=`<dt>${u[e]}:</dt><dd>${a[e]}</dd>`:"Errata"==u[e]&&(h+=`<dt>More info:</dt><dd>${a[e]}</dd>`)}),h+="</dl>",e.innerHTML=h}catch(e){console.log(e)}else console.log("Could not locate metadata <div> element");function r(e){return e.charAt(0).toUpperCase()+e.slice(1)}}window.removeEventListener("load",addMetadata),window.addEventListener("load",addMetadata);</script>
+</head>
+<body class="xml2rfc">
+<table class="ears">
+<thead><tr>
+<td class="left">Internet-Draft</td>
+<td class="center">Action Reference</td>
+<td class="right">October 2026</td>
+</tr></thead>
+<tfoot><tr>
+<td class="left">Etcheverry &amp; Ives</td>
+<td class="center">Expires 26 April 2027</td>
+<td class="right">[Page]</td>
+</tr></tfoot>
+</table>
+<div id="external-metadata" class="document-information"></div>
+<div id="internal-metadata" class="document-information">
+<dl id="identifiers">
+<dt class="label-workgroup">Workgroup:</dt>
+<dd class="workgroup">Independent Submission</dd>
+<dt class="label-internet-draft">Internet-Draft:</dt>
+<dd class="internet-draft">draft-etcheverry-action-ref-04</dd>
+<dt class="label-published">Published:</dt>
+<dd class="published">
+<time datetime="2026-10-23" class="published">23 October 2026</time>
+    </dd>
+<dt class="label-intended-status">Intended Status:</dt>
+<dd class="intended-status">Informational</dd>
+<dt class="label-expires">Expires:</dt>
+<dd class="expires"><time datetime="2027-04-26">26 April 2027</time></dd>
+<dt class="label-authors">Authors:</dt>
+<dd class="authors">
+<div class="author">
+      <div class="author-name">P. Etcheverry</div>
+<div class="org">Rama</div>
+</div>
+<div class="author">
+      <div class="author-name">K. Ives</div>
+</div>
+</dd>
+</dl>
+</div>
+<h1 id="title">Action Reference: A Deterministic Identifier for Agent Actions</h1>
+<section id="section-abstract">
+      <h2 id="abstract"><a href="#abstract" class="selfRef">Abstract</a></h2>
+<p id="section-abstract-1">
+        This document defines "action_ref", a deterministic, content-addressed
+        identifier for autonomous agent actions. Any party holding the four
+        preimage fields (agent_id, action_type, scope, timestamp) can
+        independently compute and verify the identifier without trusting the
+        emitting system. The document specifies the derivation algorithm,
+        canonical serialization using RFC 8785 JSON Canonicalization Scheme
+        (JCS), timestamp format requirements, canonical receipt envelope,
+        optional fields for revocation and policy rotation auditability, scope
+        conventions, and a composability model with existing exactly-once
+        execution guarantees.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
+</section>
+<section class="note" id="section-note.1">
+      <h2 id="name-editorial-note">
+<a href="#name-editorial-note" class="section-name selfRef">Editorial Note</a>
+      </h2>
+<p id="section-note.1-1">
+        Discussion of this draft takes place on the argentum-core repository:
+        &lt;https://github.com/giskard09/argentum-core&gt;.
+        A conformance test suite with byte-verified vectors is maintained at
+        &lt;https://github.com/giskard09/argentum-core/tree/main/examples/conformance&gt;.<a href="#section-note.1-1" class="pilcrow">¶</a></p>
+</section>
+<div id="status-of-memo">
+<section id="section-boilerplate.1">
+        <h2 id="name-status-of-this-memo">
+<a href="#name-status-of-this-memo" class="section-name selfRef">Status of This Memo</a>
+        </h2>
+<p id="section-boilerplate.1-1">
+        This Internet-Draft is submitted in full conformance with the
+        provisions of BCP 78 and BCP 79.<a href="#section-boilerplate.1-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-2">
+        Internet-Drafts are working documents of the Internet Engineering Task
+        Force (IETF). Note that other groups may also distribute working
+        documents as Internet-Drafts. The list of current Internet-Drafts is
+        at <span><a href="https://datatracker.ietf.org/drafts/current/">https://datatracker.ietf.org/drafts/current/</a></span>.<a href="#section-boilerplate.1-2" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-3">
+        Internet-Drafts are draft documents valid for a maximum of six months
+        and may be updated, replaced, or obsoleted by other documents at any
+        time. It is inappropriate to use Internet-Drafts as reference
+        material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-4">
+        This Internet-Draft will expire on 26 April 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="copyright">
+<section id="section-boilerplate.2">
+        <h2 id="name-copyright-notice">
+<a href="#name-copyright-notice" class="section-name selfRef">Copyright Notice</a>
+        </h2>
+<p id="section-boilerplate.2-1">
+            Copyright (c) 2026 IETF Trust and the persons identified as the
+            document authors. All rights reserved.<a href="#section-boilerplate.2-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.2-2">
+            This document is subject to BCP 78 and the IETF Trust's Legal
+            Provisions Relating to IETF Documents
+            (<span><a href="https://trustee.ietf.org/license-info">https://trustee.ietf.org/license-info</a></span>) in effect on the date of
+            publication of this document. Please review these documents
+            carefully, as they describe your rights and restrictions with
+            respect to this document.<a href="#section-boilerplate.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="toc">
+<section id="section-toc.1">
+        <a href="#" onclick="scroll(0,0)" class="toplink">▲</a><h2 id="name-table-of-contents">
+<a href="#name-table-of-contents" class="section-name selfRef">Table of Contents</a>
+        </h2>
+<nav class="toc"><ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1">
+            <p id="section-toc.1-1.1.1" class="keepWithNext"><a href="#section-1" class="auto internal xref">1</a>.  <a href="#name-introduction" class="internal xref">Introduction</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2">
+            <p id="section-toc.1-1.2.1" class="keepWithNext"><a href="#section-2" class="auto internal xref">2</a>.  <a href="#name-terminology" class="internal xref">Terminology</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3">
+            <p id="section-toc.1-1.3.1"><a href="#section-3" class="auto internal xref">3</a>.  <a href="#name-action-reference-derivation" class="internal xref">Action Reference Derivation</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.1">
+                <p id="section-toc.1-1.3.2.1.1" class="keepWithNext"><a href="#section-3.1" class="auto internal xref">3.1</a>.  <a href="#name-preimage-fields" class="internal xref">Preimage Fields</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.2">
+                <p id="section-toc.1-1.3.2.2.1"><a href="#section-3.2" class="auto internal xref">3.2</a>.  <a href="#name-serialization" class="internal xref">Serialization</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.3">
+                <p id="section-toc.1-1.3.2.3.1"><a href="#section-3.3" class="auto internal xref">3.3</a>.  <a href="#name-hash-function" class="internal xref">Hash Function</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.4">
+                <p id="section-toc.1-1.3.2.4.1"><a href="#section-3.4" class="auto internal xref">3.4</a>.  <a href="#name-timestamp-format" class="internal xref">Timestamp Format</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.5">
+                <p id="section-toc.1-1.3.2.5.1"><a href="#section-3.5" class="auto internal xref">3.5</a>.  <a href="#name-derivation-example" class="internal xref">Derivation Example</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4">
+            <p id="section-toc.1-1.4.1"><a href="#section-4" class="auto internal xref">4</a>.  <a href="#name-canonical-receipt-envelope" class="internal xref">Canonical Receipt Envelope</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.1">
+                <p id="section-toc.1-1.4.2.1.1"><a href="#section-4.1" class="auto internal xref">4.1</a>.  <a href="#name-required-fields" class="internal xref">Required Fields</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.2">
+                <p id="section-toc.1-1.4.2.2.1"><a href="#section-4.2" class="auto internal xref">4.2</a>.  <a href="#name-optional-fields-for-rotatio" class="internal xref">Optional Fields for Rotation Auditability</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5">
+            <p id="section-toc.1-1.5.1"><a href="#section-5" class="auto internal xref">5</a>.  <a href="#name-three-record-trail-and-auth" class="internal xref">Three-Record Trail and authorization_ref</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.1">
+                <p id="section-toc.1-1.5.2.1.1"><a href="#section-5.1" class="auto internal xref">5.1</a>.  <a href="#name-layer-model" class="internal xref">Layer Model</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.2">
+                <p id="section-toc.1-1.5.2.2.1"><a href="#section-5.2" class="auto internal xref">5.2</a>.  <a href="#name-authorization_ref-derivatio" class="internal xref">authorization_ref Derivation</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.3">
+                <p id="section-toc.1-1.5.2.3.1"><a href="#section-5.3" class="auto internal xref">5.3</a>.  <a href="#name-canonical-linking-key" class="internal xref">Canonical Linking Key</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6">
+            <p id="section-toc.1-1.6.1"><a href="#section-6" class="auto internal xref">6</a>.  <a href="#name-scope-conventions" class="internal xref">Scope Conventions</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7">
+            <p id="section-toc.1-1.7.1"><a href="#section-7" class="auto internal xref">7</a>.  <a href="#name-conformance" class="internal xref">Conformance</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8">
+            <p id="section-toc.1-1.8.1"><a href="#section-8" class="auto internal xref">8</a>.  <a href="#name-telemetry-integration" class="internal xref">Telemetry Integration</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.1">
+                <p id="section-toc.1-1.8.2.1.1"><a href="#section-8.1" class="auto internal xref">8.1</a>.  <a href="#name-instrumentation-point" class="internal xref">Instrumentation Point</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.2">
+                <p id="section-toc.1-1.8.2.2.1"><a href="#section-8.2" class="auto internal xref">8.2</a>.  <a href="#name-attribute-placement" class="internal xref">Attribute Placement</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.3">
+                <p id="section-toc.1-1.8.2.3.1"><a href="#section-8.3" class="auto internal xref">8.3</a>.  <a href="#name-cross-producer-correlation" class="internal xref">Cross-Producer Correlation</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9">
+            <p id="section-toc.1-1.9.1"><a href="#section-9" class="auto internal xref">9</a>.  <a href="#name-security-considerations" class="internal xref">Security Considerations</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.1">
+                <p id="section-toc.1-1.9.2.1.1"><a href="#section-9.1" class="auto internal xref">9.1</a>.  <a href="#name-replay-attack-surface" class="internal xref">Replay Attack Surface</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.2">
+                <p id="section-toc.1-1.9.2.2.1"><a href="#section-9.2" class="auto internal xref">9.2</a>.  <a href="#name-scope-injection" class="internal xref">Scope Injection</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.3">
+                <p id="section-toc.1-1.9.2.3.1"><a href="#section-9.3" class="auto internal xref">9.3</a>.  <a href="#name-timestamp-manipulation" class="internal xref">Timestamp Manipulation</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.4">
+                <p id="section-toc.1-1.9.2.4.1"><a href="#section-9.4" class="auto internal xref">9.4</a>.  <a href="#name-operator-independence-guara" class="internal xref">Operator-Independence Guarantee</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10">
+            <p id="section-toc.1-1.10.1"><a href="#section-10" class="auto internal xref">10</a>. <a href="#name-interoperability-considerat" class="internal xref">Interoperability Considerations</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.1">
+                <p id="section-toc.1-1.10.2.1.1"><a href="#section-10.1" class="auto internal xref">10.1</a>.  <a href="#name-on-chain-anchoring-informat" class="internal xref">On-chain Anchoring (Informative)</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.2">
+                <p id="section-toc.1-1.10.2.2.1"><a href="#section-10.2" class="auto internal xref">10.2</a>.  <a href="#name-composed-attestation-across" class="internal xref">Composed Attestation Across Independent Producers</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11">
+            <p id="section-toc.1-1.11.1"><a href="#section-11" class="auto internal xref">11</a>. <a href="#name-implementation-status" class="internal xref">Implementation Status</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12">
+            <p id="section-toc.1-1.12.1"><a href="#section-12" class="auto internal xref">12</a>. <a href="#name-iana-considerations" class="internal xref">IANA Considerations</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13">
+            <p id="section-toc.1-1.13.1"><a href="#section-13" class="auto internal xref">13</a>. <a href="#name-references" class="internal xref">References</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.1">
+                <p id="section-toc.1-1.13.2.1.1"><a href="#section-13.1" class="auto internal xref">13.1</a>.  <a href="#name-normative-references" class="internal xref">Normative References</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.2">
+                <p id="section-toc.1-1.13.2.2.1"><a href="#section-13.2" class="auto internal xref">13.2</a>.  <a href="#name-informative-references" class="internal xref">Informative References</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14">
+            <p id="section-toc.1-1.14.1"><a href="#appendix-A" class="auto internal xref"></a><a href="#name-appendix-a-test-vectors" class="internal xref">Appendix A. Test Vectors</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14.2.1">
+                <p id="section-toc.1-1.14.2.1.1"><a href="#appendix-A.1" class="auto internal xref"></a><a href="#name-a1-positive-conformance-vec" class="internal xref">A.1. Positive Conformance Vector</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14.2.2">
+                <p id="section-toc.1-1.14.2.2.1"><a href="#appendix-A.2" class="auto internal xref"></a><a href="#name-a2-negative-conformance-vec" class="internal xref">A.2. Negative Conformance Vector — Epoch-Integer Timestamp</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14.2.3">
+                <p id="section-toc.1-1.14.2.3.1"><a href="#appendix-A.3" class="auto internal xref"></a><a href="#name-a3-authorization_ref-vector" class="internal xref">A.3. authorization_ref Vector</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15">
+            <p id="section-toc.1-1.15.1"><a href="#appendix-B" class="auto internal xref"></a><a href="#name-appendix-a4-external-confor" class="internal xref">Appendix A.4. External Conformance Set — evidence-anchor-static-analysis-v0</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.16">
+            <p id="section-toc.1-1.16.1"><a href="#appendix-C" class="auto internal xref"></a><a href="#name-appendix-b-field-mapping-fo" class="internal xref">Appendix B. Field Mapping for Existing Systems</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.17">
+            <p id="section-toc.1-1.17.1"><a href="#appendix-D" class="auto internal xref"></a><a href="#name-authors-addresses" class="internal xref">Authors' Addresses</a></p>
+</li>
+        </ul>
+</nav>
+</section>
+</div>
+<div id="introduction">
+<section id="section-1">
+      <h2 id="name-introduction">
+<a href="#section-1" class="section-number selfRef">1. </a><a href="#name-introduction" class="section-name selfRef">Introduction</a>
+      </h2>
+<p id="section-1-1">
+        Autonomous agents operating across distributed systems need a way to
+        identify individual actions that is independent of any single
+        system's infrastructure. Existing audit trail mechanisms rely on
+        operator-managed identifiers — UUIDs, database primary keys, or
+        system-specific event IDs — that cannot be verified by a third party
+        without trusting the issuing system.<a href="#section-1-1" class="pilcrow">¶</a></p>
+<p id="section-1-2">
+        This document defines "action_ref": a deterministic identifier derived
+        from four preimage fields that any party can independently compute.
+        The identifier is content-addressed — it is derived from the action
+        content itself, not from a sequencer or registry. A verifier holding
+        the four fields can recompute it without any call to the operator's
+        infrastructure.<a href="#section-1-2" class="pilcrow">¶</a></p>
+<p id="section-1-3">
+        The design goal is operator-independence: a receipt carrying action_ref
+        can be verified by an auditor, a smart contract, or a competing system
+        without trusting the emitter. This property is structural, not
+        procedural — it follows from the derivation algorithm, not from
+        operator policy.<a href="#section-1-3" class="pilcrow">¶</a></p>
+<p id="section-1-4">
+        An automated static analysis of 35,689 agent-ecosystem endpoints
+        <span>[<a href="#AgentGraph-EvidenceAnchor" class="cite xref">AgentGraph-EvidenceAnchor</a>]</span> found that 636 of 7,029
+        MCP servers (~9%) carry a high or critical finding — hardcoded secrets,
+        unsafe exec/eval, missing authentication, or known-vulnerable
+        dependencies — detectable by static analysis alone.
+        This motivates an independently-verifiable evidence anchor for scan
+        results, so a relying party can confirm a verdict without trusting
+        the scanner operator.<a href="#section-1-4" class="pilcrow">¶</a></p>
+<aside id="section-1-5">
+        <p id="section-1-5.1">
+          This figure covers static analysis only; it does not cover runtime
+          or behavioral risk. Methodology: AgentGraph EvidenceAnchor static
+          analysis conformance set, June 2026
+          <span>[<a href="#AgentGraph-EvidenceAnchor" class="cite xref">AgentGraph-EvidenceAnchor</a>]</span>.<a href="#section-1-5.1" class="pilcrow">¶</a></p>
+</aside>
+<p id="section-1-6">
+        This document covers:<a href="#section-1-6" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-1-7.1">The derivation algorithm (SHA-256 over JCS-canonical JSON).<a href="#section-1-7.1" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="section-1-7.2">Preimage field semantics and invariants.<a href="#section-1-7.2" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="section-1-7.3">Timestamp format requirements for cross-implementation byte consistency.<a href="#section-1-7.3" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="section-1-7.4">The canonical receipt envelope.<a href="#section-1-7.4" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="section-1-7.5">Optional fields for policy rotation and revocation auditability.<a href="#section-1-7.5" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="section-1-7.6">The authorization_ref derivation for three-record trail correlation.<a href="#section-1-7.6" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="section-1-7.7">Scope conventions for cross-emitter disambiguation.<a href="#section-1-7.7" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="section-1-7.8">Security considerations including replay attack surface.<a href="#section-1-7.8" class="pilcrow">¶</a>
+</li>
+      </ul>
+</section>
+</div>
+<div id="terminology">
+<section id="section-2">
+      <h2 id="name-terminology">
+<a href="#section-2" class="section-number selfRef">2. </a><a href="#name-terminology" class="section-name selfRef">Terminology</a>
+      </h2>
+<p id="section-2-1">
+        The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+        "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and
+        "OPTIONAL" in this document are to be interpreted as described in
+        BCP 14 <span>[<a href="#RFC2119" class="cite xref">RFC2119</a>]</span> <span>[<a href="#RFC8174" class="cite xref">RFC8174</a>]</span> when, and
+        only when, they appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-2-2">
+        <dt id="section-2-2.1">action_ref:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-2.2">
+          A deterministic, content-addressed identifier for an agent action.
+          Computed as SHA-256(JCS({agent_id, action_type, scope, timestamp})).<a href="#section-2-2.2" class="pilcrow">¶</a>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-2.3">preimage:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-2.4">
+          The four-field JSON object over which the SHA-256 hash is computed:
+          {agent_id, action_type, scope, timestamp}.<a href="#section-2-2.4" class="pilcrow">¶</a>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-2.5">emitter:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-2.6">
+          The system or agent that produces a receipt containing action_ref.<a href="#section-2-2.6" class="pilcrow">¶</a>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-2.7">verifier:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-2.8">
+          Any party that independently recomputes action_ref from the preimage
+          fields and checks it against a presented receipt.<a href="#section-2-2.8" class="pilcrow">¶</a>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-2.9">operator:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-2.10">
+          The system controlling the emitter. A verifier MUST be able to verify
+          action_ref without trusting the operator.<a href="#section-2-2.10" class="pilcrow">¶</a>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-2.11">JCS:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-2.12">
+          JSON Canonicalization Scheme, defined in <span>[<a href="#RFC8785" class="cite xref">RFC8785</a>]</span>.
+          Produces a unique byte sequence for any JSON value.<a href="#section-2-2.12" class="pilcrow">¶</a>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-2.13">trail:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-2.14">
+          A sequence of records (pre-execution, decision, receipt) correlated
+          by action_ref across systems.<a href="#section-2-2.14" class="pilcrow">¶</a>
+</dd>
+      <dd class="break"></dd>
+</dl>
+</section>
+</div>
+<div id="derivation">
+<section id="section-3">
+      <h2 id="name-action-reference-derivation">
+<a href="#section-3" class="section-number selfRef">3. </a><a href="#name-action-reference-derivation" class="section-name selfRef">Action Reference Derivation</a>
+      </h2>
+<div id="preimage-fields">
+<section id="section-3.1">
+        <h3 id="name-preimage-fields">
+<a href="#section-3.1" class="section-number selfRef">3.1. </a><a href="#name-preimage-fields" class="section-name selfRef">Preimage Fields</a>
+        </h3>
+<p id="section-3.1-1">
+          The preimage is a JSON object containing exactly four fields:<a href="#section-3.1-1" class="pilcrow">¶</a></p>
+<table class="center" id="table-1">
+          <caption><a href="#table-1" class="selfRef">Table 1</a></caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">Field</th>
+              <th class="text-left" rowspan="1" colspan="1">Type</th>
+              <th class="text-left" rowspan="1" colspan="1">Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">agent_id</td>
+              <td class="text-left" rowspan="1" colspan="1">string</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                Stable identifier for the executing agent at issuance time —
+                the terminal executor after full delegation resolution. In a
+                delegation chain A→B→C where C executes the action, agent_id
+                is C.
+              </td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">action_type</td>
+              <td class="text-left" rowspan="1" colspan="1">string</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                Semantic label for what the agent did (e.g., "code.execute",
+                "payment.send", "oracle.signal").
+              </td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">scope</td>
+              <td class="text-left" rowspan="1" colspan="1">string</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                Terminal executing agent's requested-intent scope at the
+                point of action. Non-empty string. MUST NOT be a derived
+                hash of the intent object (see <a href="#scope" class="auto internal xref">Section 6</a>).
+              </td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">timestamp</td>
+              <td class="text-left" rowspan="1" colspan="1">string</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                RFC 3339 UTC with exactly 3 millisecond digits. Format:
+                YYYY-MM-DDTHH:MM:SS.mmmZ. See <a href="#timestamp" class="auto internal xref">Section 3.4</a>.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+<p id="section-3.1-3">
+          The four fields are REQUIRED. No additional fields enter the preimage.
+          Optional fields in the receipt envelope (Section 4) do not affect the
+          action_ref value.<a href="#section-3.1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="serialization">
+<section id="section-3.2">
+        <h3 id="name-serialization">
+<a href="#section-3.2" class="section-number selfRef">3.2. </a><a href="#name-serialization" class="section-name selfRef">Serialization</a>
+        </h3>
+<p id="section-3.2-1">
+          The four fields MUST be serialized using RFC 8785 JSON Canonicalization
+          Scheme (JCS) before hashing:<a href="#section-3.2-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-3.2-2.1">Keys in lexicographic Unicode code point order:
+              action_type, agent_id, scope, timestamp.<a href="#section-3.2-2.1" class="pilcrow">¶</a>
+</li>
+          <li class="normal" id="section-3.2-2.2">No whitespace between tokens.<a href="#section-3.2-2.2" class="pilcrow">¶</a>
+</li>
+          <li class="normal" id="section-3.2-2.3">UTF-8 encoded.<a href="#section-3.2-2.3" class="pilcrow">¶</a>
+</li>
+          <li class="normal" id="section-3.2-2.4">Values are JSON strings (standard JSON escaping only).<a href="#section-3.2-2.4" class="pilcrow">¶</a>
+</li>
+        </ul>
+<p id="section-3.2-3">
+          The resulting JCS payload for a conformant implementation will sort
+          keys in this order: action_type &lt; agent_id &lt; scope &lt; timestamp.<a href="#section-3.2-3" class="pilcrow">¶</a></p>
+<p id="section-3.2-4">
+          Implementations using the simple json.dumps approach (Python, Node.js)
+          produce RFC 8785-compatible bytes for inputs within the safe band:
+          ASCII-only field values, conformant RFC 3339 timestamps, no surrogate-pair
+          Unicode. For inputs outside this band, implementations MUST use an
+          RFC 8785-compliant library.<a href="#section-3.2-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="hash">
+<section id="section-3.3">
+        <h3 id="name-hash-function">
+<a href="#section-3.3" class="section-number selfRef">3.3. </a><a href="#name-hash-function" class="section-name selfRef">Hash Function</a>
+        </h3>
+<p id="section-3.3-1">
+          action_ref = SHA-256(JCS(preimage)), encoded as lowercase hexadecimal.<a href="#section-3.3-1" class="pilcrow">¶</a></p>
+<p id="section-3.3-2">
+          The output is a 64-character lowercase hex string (256 bits / 32 bytes).
+          Uppercase hex is non-conformant.<a href="#section-3.3-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="timestamp">
+<section id="section-3.4">
+        <h3 id="name-timestamp-format">
+<a href="#section-3.4" class="section-number selfRef">3.4. </a><a href="#name-timestamp-format" class="section-name selfRef">Timestamp Format</a>
+        </h3>
+<p id="section-3.4-1">
+          The timestamp field MUST conform to the following format constraints:<a href="#section-3.4-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-3.4-2.1">Timezone: "Z" suffix only. "+00:00" or any other offset representation
+              is non-conformant.<a href="#section-3.4-2.1" class="pilcrow">¶</a>
+</li>
+          <li class="normal" id="section-3.4-2.2">Fractional precision: exactly 3 digits (milliseconds). No trailing
+              zero suppression. ".000" is conformant; ".0" is not.<a href="#section-3.4-2.2" class="pilcrow">¶</a>
+</li>
+          <li class="normal" id="section-3.4-2.3">Template: YYYY-MM-DDTHH:MM:SS.mmmZ — one valid byte sequence per
+              instant.<a href="#section-3.4-2.3" class="pilcrow">¶</a>
+</li>
+        </ul>
+<p id="section-3.4-3">
+          These constraints close the <span>[<a href="#RFC3339" class="cite xref">RFC3339</a>]</span> underspecification
+          surface. RFC 3339 admits multiple lexically distinct encodings of the same
+          instant that produce different SHA-256 digests under JCS. This specification
+          closes that surface at the format level.<a href="#section-3.4-3" class="pilcrow">¶</a></p>
+<p id="section-3.4-4">
+          Implementations holding epoch-millisecond integers MUST convert to the
+          conformant RFC 3339 string before hashing. Implementations that hash the
+          epoch-ms integer directly are not conformant.<a href="#section-3.4-4" class="pilcrow">¶</a></p>
+<p id="section-3.4-5">
+          The W3C CG ai-agent-protocol discussion (issue #34) established
+          epoch-millisecond integer as an application-layer representation.
+          This specification uses the RFC 3339 string form in the preimage.
+          The two representations are not interchangeable in the preimage —
+          they produce different digests.<a href="#section-3.4-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="example">
+<section id="section-3.5">
+        <h3 id="name-derivation-example">
+<a href="#section-3.5" class="section-number selfRef">3.5. </a><a href="#name-derivation-example" class="section-name selfRef">Derivation Example</a>
+        </h3>
+<p id="section-3.5-1">
+          The following example is byte-verified in the conformance suite
+          (vector "nexus-oracle-signal"):<a href="#section-3.5-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-3.5-2">
+<pre>
+Input:
+  agent_id    = "nexus-agent-xa12.onrender.com"
+  action_type = "oracle.signal"
+  scope       = "BTC"
+  timestamp   = "2025-05-18T11:40:31.000Z"
+
+JCS payload:
+  {"action_type":"oracle.signal","agent_id":"nexus-agent-xa12.on
+  render.com","scope":"BTC","timestamp":"2025-05-18T11:40:31.000Z"}
+
+SHA-256:
+  fdd7f810499f06be24355ca8e2bfb8c4b965cc80c838f41fa074683443d89f5a
+</pre><a href="#section-3.5-2" class="pilcrow">¶</a>
+</div>
+</section>
+</div>
+</section>
+</div>
+<div id="envelope">
+<section id="section-4">
+      <h2 id="name-canonical-receipt-envelope">
+<a href="#section-4" class="section-number selfRef">4. </a><a href="#name-canonical-receipt-envelope" class="section-name selfRef">Canonical Receipt Envelope</a>
+      </h2>
+<div id="envelope-required">
+<section id="section-4.1">
+        <h3 id="name-required-fields">
+<a href="#section-4.1" class="section-number selfRef">4.1. </a><a href="#name-required-fields" class="section-name selfRef">Required Fields</a>
+        </h3>
+<p id="section-4.1-1">
+          Implementations that emit a receipt referencing this specification
+          SHOULD include the following fields to ensure long-lived verifiability:<a href="#section-4.1-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-4.1-2">
+<pre>
+{
+  "packet_version": "1.0",
+  "action_ref": "&lt;sha256 hex&gt;",
+  "hash_algo": "sha256",
+  "preimage_format": "jcs-rfc8785-v1",
+  "preimage": {
+    "agent_id": "...",
+    "action_type": "...",
+    "scope": "...",
+    "timestamp": "2026-05-15T10:00:00.123Z"
+  }
+}
+</pre><a href="#section-4.1-2" class="pilcrow">¶</a>
+</div>
+<span class="break"></span><dl class="dlParallel" id="section-4.1-3">
+          <dt id="section-4.1-3.1">packet_version:</dt>
+          <dd style="margin-left: 1.5em" id="section-4.1-3.2">
+            Forward-compatibility anchor. v1 verifiers can explicitly reject
+            unknown versions rather than fail silently.<a href="#section-4.1-3.2" class="pilcrow">¶</a>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-4.1-3.3">hash_algo:</dt>
+          <dd style="margin-left: 1.5em" id="section-4.1-3.4">
+            Makes receipts self-describing. If a future implementation switches
+            hash functions, receipts issued before the change remain replayable.<a href="#section-4.1-3.4" class="pilcrow">¶</a>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-4.1-3.5">preimage_format:</dt>
+          <dd style="margin-left: 1.5em" id="section-4.1-3.6">
+            Unambiguously identifies the serialization. Any verifier can
+            recompute action_ref from the preimage fields using RFC 8785 without
+            trusting the emitter.<a href="#section-4.1-3.6" class="pilcrow">¶</a>
+</dd>
+        <dd class="break"></dd>
+</dl>
+</section>
+</div>
+<div id="envelope-optional">
+<section id="section-4.2">
+        <h3 id="name-optional-fields-for-rotatio">
+<a href="#section-4.2" class="section-number selfRef">4.2. </a><a href="#name-optional-fields-for-rotatio" class="section-name selfRef">Optional Fields for Rotation Auditability</a>
+        </h3>
+<p id="section-4.2-1">
+          The canonical receipt envelope v1.0 records state at the moment the
+          action was claimed. It does not record whether that state was still
+          valid when the action was admitted for execution. Two failure modes
+          this gap creates:<a href="#section-4.2-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-4.2-2">
+          <li id="section-4.2-2.1">
+            <strong>Trust tier degradation:</strong> an agent moves from TRUSTED
+            to WATCH between claim and execution. The anchor records the
+            claim-time state. A verifier replaying the receipt cannot determine
+            from the receipt alone whether the agent was still trusted when the
+            action was admitted.<a href="#section-4.2-2.1" class="pilcrow">¶</a>
+</li>
+          <li id="section-4.2-2.2">
+            <strong>Policy rotation:</strong> the counterparty policy changes
+            between issuance and execution. A counterparty_policy_hash field
+            proves which policy was referenced at claim time, but does not prove
+            whether that policy was still current at admission.<a href="#section-4.2-2.2" class="pilcrow">¶</a>
+</li>
+        </ol>
+<p id="section-4.2-3">
+          Three optional fields close this gap:<a href="#section-4.2-3" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-4.2-4">
+          <dt id="section-4.2-4.1">policy_version (string, OPTIONAL):</dt>
+          <dd style="margin-left: 1.5em" id="section-4.2-4.2">
+            Identifies which version of the governing policy was in force when
+            the action was admitted. Distinct from counterparty_policy_hash,
+            which proves which policy was referenced — policy_version proves
+            whether it was still current at execution time.<a href="#section-4.2-4.2" class="pilcrow">¶</a>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-4.2-4.3">authority_verified_at_ms (integer, OPTIONAL):</dt>
+          <dd style="margin-left: 1.5em" id="section-4.2-4.4">
+            Unix timestamp in milliseconds at which the delegation authority
+            was verified at issuance. Records when the acting agent's authority
+            was confirmed before the action was admitted.<a href="#section-4.2-4.4" class="pilcrow">¶</a>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-4.2-4.5">revocation_check_at_ms (integer, OPTIONAL):</dt>
+          <dd style="margin-left: 1.5em" id="section-4.2-4.6">
+            Unix timestamp in milliseconds of the last non-revocation check
+            performed before execution. Establishes a maximum window of
+            credential exposure. A receipt without this field cannot prove the
+            agent's credentials were valid immediately before the action was
+            admitted.<a href="#section-4.2-4.6" class="pilcrow">¶</a>
+</dd>
+        <dd class="break"></dd>
+</dl>
+<p id="section-4.2-5">
+          A verifier that requires post-rotation auditability SHOULD treat a
+          receipt missing either field as unauditable for the rotation window —
+          not as invalid.<a href="#section-4.2-5" class="pilcrow">¶</a></p>
+<p id="section-4.2-6">
+          The millisecond precision for revocation_check_at_ms is REQUIRED.
+          Credential checks in live multi-agent systems happen at sub-second
+          granularity. Systems that only have second-precision timestamps SHOULD
+          multiply by 1000 and document the precision loss.<a href="#section-4.2-6" class="pilcrow">¶</a></p>
+<p id="section-4.2-7">
+          Note: the three optional fields in this section correspond to the
+          "freshness" verification layer described in discussions on the
+          agntcy/identity repository (issue #165). A verifier confirming
+          offline signature integrity (integrity), checking that the executed
+          scope sat within the delegated scope (authority), and establishing
+          the key validity window at decision time (freshness) needs all three
+          layers. The fields in this section address the freshness layer;
+          the authorization_ref in Section 5 addresses the authority layer.<a href="#section-4.2-7" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="three-record">
+<section id="section-5">
+      <h2 id="name-three-record-trail-and-auth">
+<a href="#section-5" class="section-number selfRef">5. </a><a href="#name-three-record-trail-and-auth" class="section-name selfRef">Three-Record Trail and authorization_ref</a>
+      </h2>
+<div id="layer-model">
+<section id="section-5.1">
+        <h3 id="name-layer-model">
+<a href="#section-5.1" class="section-number selfRef">5.1. </a><a href="#name-layer-model" class="section-name selfRef">Layer Model</a>
+        </h3>
+<p id="section-5.1-1">
+          action_ref is the correlation key across a three-record trail:<a href="#section-5.1-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-5.1-2">
+          <li id="section-5.1-2.1">
+            <strong>Pre-execution record:</strong> the commitment before the
+            action is taken. Contains the action_ref preimage fields and
+            authorization_ref.<a href="#section-5.1-2.1" class="pilcrow">¶</a>
+</li>
+          <li id="section-5.1-2.2">
+            <strong>Decision record:</strong> the authorization event. Contains
+            authorization_ref as its identifier and action_ref as the correlation
+            key.<a href="#section-5.1-2.2" class="pilcrow">¶</a>
+</li>
+          <li id="section-5.1-2.3">
+            <strong>Receipt:</strong> the post-execution record. Contains
+            action_ref and authorization_ref; verifier checks both against the
+            pre-execution record.<a href="#section-5.1-2.3" class="pilcrow">¶</a>
+</li>
+        </ol>
+<p id="section-5.1-3">
+          A conformant verifier runs four independent checks across the trail:<a href="#section-5.1-3" class="pilcrow">¶</a></p>
+<table class="center" id="table-2">
+          <caption><a href="#table-2" class="selfRef">Table 2</a></caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">Check</th>
+              <th class="text-left" rowspan="1" colspan="1">Fields compared</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Same call instance</td>
+              <td class="text-left" rowspan="1" colspan="1">action_ref in pre-execution == action_ref in receipt</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Same proposed payload</td>
+              <td class="text-left" rowspan="1" colspan="1">original_args_digest recomputed from disclosed args</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Same dispatched payload</td>
+              <td class="text-left" rowspan="1" colspan="1">effective_args_digest in pre-execution == verifier-recomputed from receipt</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Same authorization decision</td>
+              <td class="text-left" rowspan="1" colspan="1">authorization_ref in pre-execution == authorization_ref in receipt</td>
+            </tr>
+          </tbody>
+        </table>
+<p id="section-5.1-5">
+          A trail that passes the first three checks but fails the fourth proves
+          that execution proceeded under a different approval than the one
+          recorded in the pre-execution entry.<a href="#section-5.1-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="authorization-ref">
+<section id="section-5.2">
+        <h3 id="name-authorization_ref-derivatio">
+<a href="#section-5.2" class="section-number selfRef">5.2. </a><a href="#name-authorization_ref-derivatio" class="section-name selfRef">authorization_ref Derivation</a>
+        </h3>
+<p id="section-5.2-1">
+          authorization_ref is the identifier for the Decision record:<a href="#section-5.2-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-5.2-2">
+<pre>
+authorization_ref = SHA-256(JCS({
+  "action_ref":       "&lt;sha256 hex&gt;",
+  "authorized_scope": "&lt;scope string&gt;",
+  "decision_ts":      &lt;epoch-ms integer&gt;,
+  "policy_id":        "&lt;policy identifier&gt;"
+}))
+</pre><a href="#section-5.2-2" class="pilcrow">¶</a>
+</div>
+<p id="section-5.2-3">
+          JCS lexicographic key order: action_ref, authorized_scope, decision_ts,
+          policy_id. Note: decision_ts is an epoch-millisecond integer, not an
+          RFC 3339 string.<a href="#section-5.2-3" class="pilcrow">¶</a></p>
+<p id="section-5.2-4">
+          Invariants:<a href="#section-5.2-4" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-5.2-5.1">action_ref is embedded in the preimage. A verifier can confirm
+              the decision was not reused across action instances.<a href="#section-5.2-5.1" class="pilcrow">¶</a>
+</li>
+          <li class="normal" id="section-5.2-5.2">Recomputable without operator cooperation from the four decision
+              record fields.<a href="#section-5.2-5.2" class="pilcrow">¶</a>
+</li>
+          <li class="normal" id="section-5.2-5.3">MUST appear in both the pre-execution record and the receipt.<a href="#section-5.2-5.3" class="pilcrow">¶</a>
+</li>
+          <li class="normal" id="section-5.2-5.4">The signer of the Decision record MUST be independent of the actor/executor
+              whose action it authorizes. A party recomputing and certifying an existing
+              signed record after the fact (referee role) does not satisfy this — the
+              signer of record must be independent BEFORE the outcome is final, not
+              verifying it afterward.<a href="#section-5.2-5.4" class="pilcrow">¶</a>
+</li>
+        </ul>
+</section>
+</div>
+<div id="canonical-linking-key">
+<section id="section-5.3">
+        <h3 id="name-canonical-linking-key">
+<a href="#section-5.3" class="section-number selfRef">5.3. </a><a href="#name-canonical-linking-key" class="section-name selfRef">Canonical Linking Key</a>
+        </h3>
+<p id="section-5.3-1">
+          The same action_ref is computable from artifacts produced by independent
+          systems using the same four-field derivation:<a href="#section-5.3-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-5.3-2.1">A Mycelium TrailRecord (preimage fields published in each record).<a href="#section-5.3-2.1" class="pilcrow">¶</a>
+</li>
+          <li class="normal" id="section-5.3-2.2">A Nobulex covenant receipt (action_type as semantic label + timestamp
+              + agent_id + scope).<a href="#section-5.3-2.2" class="pilcrow">¶</a>
+</li>
+          <li class="normal" id="section-5.3-2.3">A SafeAgent claim (joint spec argentum-core issue #7).<a href="#section-5.3-2.3" class="pilcrow">¶</a>
+</li>
+          <li class="normal" id="section-5.3-2.4">A CrewAI idempotency key (crewAI PR #5822 — key derivation
+              converges on this primitive from the retry-deduplication direction).<a href="#section-5.3-2.4" class="pilcrow">¶</a>
+</li>
+          <li class="normal" id="section-5.3-2.5">NEXUS oracle receipts (implements canonical envelope v1.0).<a href="#section-5.3-2.5" class="pilcrow">¶</a>
+</li>
+        </ul>
+<p id="section-5.3-3">
+          Any verifier holding one artifact can validate against another without
+          trusting either system.<a href="#section-5.3-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="scope">
+<section id="section-6">
+      <h2 id="name-scope-conventions">
+<a href="#section-6" class="section-number selfRef">6. </a><a href="#name-scope-conventions" class="section-name selfRef">Scope Conventions</a>
+      </h2>
+<p id="section-6-1">
+        scope is a free-form non-empty string. Any value is valid as long as it
+        is non-empty and consistent across all parties deriving the same action_ref.<a href="#section-6-1" class="pilcrow">¶</a></p>
+<p id="section-6-2">
+        RECOMMENDED convention (non-normative): namespace-prefix with the emitter
+        identifier using &lt;emitter&gt;:&lt;scope&gt;, for example
+        "algovoi:compliance_screen" or "presidio:x402.screen:clean-allow".
+        Prefixing avoids collisions when trails from multiple emitters are verified
+        or aggregated by a third party.<a href="#section-6-2" class="pilcrow">¶</a></p>
+<p id="section-6-3">
+        The scope anti-pattern: scope MUST NOT be a derived hash of the intent
+        object. A common mistake is to hash the initial intent object and use that
+        hash as the scope value. This breaks the primary verifiability property:
+        any party holding the four preimage fields must be able to recompute
+        action_ref independently, without retrieving any external record. With a
+        hashed scope, a verifier cannot recompute action_ref from the intent tuple
+        alone — they must also retrieve the commitment record.<a href="#section-6-3" class="pilcrow">¶</a></p>
+<p id="section-6-4">
+        Multi-value scope segments: when a scope segment encodes a set of values
+        (e.g., entity types detected by a screening decision), implementations MUST
+        sort those values lexicographically and join them with a comma and no spaces.
+        This ensures byte-determinism across implementations that may produce values
+        in non-stable detection order.<a href="#section-6-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="conformance-section">
+<section id="section-7">
+      <h2 id="name-conformance">
+<a href="#section-7" class="section-number selfRef">7. </a><a href="#name-conformance" class="section-name selfRef">Conformance</a>
+      </h2>
+<p id="section-7-1">
+        A conformance test suite with byte-verified vectors is maintained in
+        <span>[<a href="#argentum-core" class="cite xref">argentum-core</a>]</span>.<a href="#section-7-1" class="pilcrow">¶</a></p>
+<p id="section-7-2">
+        The suite includes:<a href="#section-7-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-7-3.1">action-ref-v1-baseline: positive and negative vectors for the four
+            preimage fields, including timestamp format violations.<a href="#section-7-3.1" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="section-7-3.2">guardrail-provider-v1: authorization_ref derivation vectors including
+            NEG cases for decision reuse detection.<a href="#section-7-3.2" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="section-7-3.3">near-miss-v1: same action_ref, different state (KNOWN_DESIGN_PROPERTY).<a href="#section-7-3.3" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="section-7-3.4">recompute-drift-v1: epoch-integer non-conformance (neg-b01-epoch-integer).<a href="#section-7-3.4" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="section-7-3.5">signing-trust-ref-v1: operator key isolation vectors.<a href="#section-7-3.5" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="section-7-3.6">restraint-receipt-v1: deny and defer verdict vectors.<a href="#section-7-3.6" class="pilcrow">¶</a>
+</li>
+      </ul>
+<p id="section-7-4">
+        Each conformance directory includes verify.py and verify.mjs. All vectors
+        are byte-identical across implementations. The stable tag for v1.0 is
+        "action-ref-v1.0" in the argentum-core repository.<a href="#section-7-4" class="pilcrow">¶</a></p>
+<p id="section-7-5">
+        External conformance sets accepted under review:<a href="#section-7-5" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-7-6.1">examples/conformance/graph-advocate/ — PaulieB14 (Graph Advocate),
+            counterparty-ref-v1, 3 vectors, 2 implementations byte-identical,
+            production service.<a href="#section-7-6.1" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="section-7-6.2">examples/conformance/agentoracle-v1/ — TKCollective (AgentOracle +
+            AgentTrust), 10 vectors, cross-issuer property verified.<a href="#section-7-6.2" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="section-7-6.3">examples/conformance/presidio-x402/ — vstantch/presidio-group.eu,
+            PII screening with composition, 3 vectors.<a href="#section-7-6.3" class="pilcrow">¶</a>
+</li>
+      </ul>
+</section>
+</div>
+<div id="instrumentation">
+<section id="section-8">
+      <h2 id="name-telemetry-integration">
+<a href="#section-8" class="section-number selfRef">8. </a><a href="#name-telemetry-integration" class="section-name selfRef">Telemetry Integration</a>
+      </h2>
+<p id="section-8-1">
+        action_ref is designed to serve as a correlation key in observability
+        pipelines. This section defines the instrumentation point, attribute
+        placement, and cross-producer correlation property for implementations
+        that export telemetry records.<a href="#section-8-1" class="pilcrow">¶</a></p>
+<div id="instrumentation-point">
+<section id="section-8.1">
+        <h3 id="name-instrumentation-point">
+<a href="#section-8.1" class="section-number selfRef">8.1. </a><a href="#name-instrumentation-point" class="section-name selfRef">Instrumentation Point</a>
+        </h3>
+<p id="section-8.1-1">
+          The correct instrumentation point is the authorization gate's evaluation
+          operation: the component that receives the intent tuple, applies policy,
+          and returns a decision (allow, deny, warn, escalate, or transform).<a href="#section-8.1-1" class="pilcrow">¶</a></p>
+<p id="section-8.1-2">
+          Implementations MUST NOT derive action_ref at the invoking agent's span
+          level. Agent-level instrumentation does not have access to the complete
+          intent tuple (agent_id, action_type, scope, timestamp) as presented to
+          the gate. A hash computed from partial or reconstructed inputs is not
+          conformant and will not verify against independently derived values.<a href="#section-8.1-2" class="pilcrow">¶</a></p>
+<p id="section-8.1-3">
+          The gate SHOULD derive action_ref before returning the verdict, so that
+          the value is available for inclusion in the evaluation record at the
+          moment of decision. The derivation requires no network call or external
+          state: it is a local SHA-256 of the JCS-serialized preimage.<a href="#section-8.1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="instrumentation-placement">
+<section id="section-8.2">
+        <h3 id="name-attribute-placement">
+<a href="#section-8.2" class="section-number selfRef">8.2. </a><a href="#name-attribute-placement" class="section-name selfRef">Attribute Placement</a>
+        </h3>
+<p id="section-8.2-1">
+          When the gate's evaluation operation is recorded as a telemetry span or
+          structured event, action_ref SHOULD be included as a string attribute.
+          The gate sets this attribute from the preimage fields, not from the
+          returned decision object or any downstream record.<a href="#section-8.2-1" class="pilcrow">¶</a></p>
+<p id="section-8.2-2">
+          Downstream components that reference the same action (e.g., a payment
+          receipt, an audit log entry, or a screening record) MAY carry action_ref
+          as a correlation attribute. When a downstream span includes action_ref,
+          the value MUST be the 64-character lowercase hex string derived by the
+          gate for that evaluation. Re-deriving the value from a different preimage
+          is not permitted: only the gate holds the authoritative preimage at
+          decision time.<a href="#section-8.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="instrumentation-cross-producer">
+<section id="section-8.3">
+        <h3 id="name-cross-producer-correlation">
+<a href="#section-8.3" class="section-number selfRef">8.3. </a><a href="#name-cross-producer-correlation" class="section-name selfRef">Cross-Producer Correlation</a>
+        </h3>
+<p id="section-8.3-1">
+          Because action_ref is derived deterministically from a fixed preimage,
+          independent components that participate in the same authorized action
+          can produce the same value without coordination. A policy gate, a
+          screening component, and an audit service each derive the same action_ref
+          from the same four fields, independently and without shared session state.<a href="#section-8.3-1" class="pilcrow">¶</a></p>
+<p id="section-8.3-2">
+          This property enables a verifier to correlate telemetry records across
+          producers without trusting any single emitter. A monitoring system that
+          receives evaluation events from multiple authorization components can
+          join them on action_ref without relying on an operator-provided
+          correlation key. The join is verifiable: any party holding the preimage
+          fields can recompute the key and confirm the association.<a href="#section-8.3-2" class="pilcrow">¶</a></p>
+<p id="section-8.3-3">
+          When multiple components record the same action_ref in the same telemetry
+          pipeline, the set of matching records constitutes an independently
+          verifiable trace of the action across system boundaries.<a href="#section-8.3-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="security">
+<section id="section-9">
+      <h2 id="name-security-considerations">
+<a href="#section-9" class="section-number selfRef">9. </a><a href="#name-security-considerations" class="section-name selfRef">Security Considerations</a>
+      </h2>
+<div id="replay">
+<section id="section-9.1">
+        <h3 id="name-replay-attack-surface">
+<a href="#section-9.1" class="section-number selfRef">9.1. </a><a href="#name-replay-attack-surface" class="section-name selfRef">Replay Attack Surface</a>
+        </h3>
+<p id="section-9.1-1">
+          action_ref is deterministic: the same four preimage field values always
+          produce the same identifier. This is a design property — it enables
+          cross-system correlation without operator trust. The implication is that
+          action_ref alone does not prevent replay.<a href="#section-9.1-1" class="pilcrow">¶</a></p>
+<p id="section-9.1-2">
+          Replay protection requires the receipt to carry:<a href="#section-9.1-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-9.1-3.1">authorization_ref (Section 5.2): binds the identifier to a specific
+              authorization decision. A replayed action_ref with a different
+              authorization decision will fail check 4.<a href="#section-9.1-3.1" class="pilcrow">¶</a>
+</li>
+          <li class="normal" id="section-9.1-3.2">signing-trust-ref-v1: an operator-independent signature over the
+              full receipt envelope. An attacker cannot substitute a different
+              receipt without invalidating the signature.<a href="#section-9.1-3.2" class="pilcrow">¶</a>
+</li>
+        </ul>
+<p id="section-9.1-4">
+          A verifier that checks action_ref alone (without authorization_ref and
+          signature) cannot detect replay. This specification requires both fields
+          for complete replay resistance.<a href="#section-9.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="scope-injection">
+<section id="section-9.2">
+        <h3 id="name-scope-injection">
+<a href="#section-9.2" class="section-number selfRef">9.2. </a><a href="#name-scope-injection" class="section-name selfRef">Scope Injection</a>
+        </h3>
+<p id="section-9.2-1">
+          If scope is not validated at emission time, an adversary can inject a
+          scope string that differs from the actual intent. The action_ref will
+          be a valid hash of the injected scope, not of the actual action.
+          Verifiers SHOULD require that scope is provided by the executing agent,
+          not derived or transformed by an intermediary system.<a href="#section-9.2-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="timestamp-manipulation">
+<section id="section-9.3">
+        <h3 id="name-timestamp-manipulation">
+<a href="#section-9.3" class="section-number selfRef">9.3. </a><a href="#name-timestamp-manipulation" class="section-name selfRef">Timestamp Manipulation</a>
+        </h3>
+<p id="section-9.3-1">
+          A non-conformant timestamp (wrong precision, wrong timezone suffix,
+          epoch-ms instead of RFC 3339 string) produces a different digest. This
+          can be used to generate action_refs that appear valid but cannot be
+          independently recomputed by a conformant verifier. Implementations MUST
+          validate timestamp format at emission time, not only at verification time.<a href="#section-9.3-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="operator-independence">
+<section id="section-9.4">
+        <h3 id="name-operator-independence-guara">
+<a href="#section-9.4" class="section-number selfRef">9.4. </a><a href="#name-operator-independence-guara" class="section-name selfRef">Operator-Independence Guarantee</a>
+        </h3>
+<p id="section-9.4-1">
+          The operator-independence property holds only if:<a href="#section-9.4-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-9.4-2">
+          <li id="section-9.4-2.1">The four preimage fields are disclosed to verifiers.<a href="#section-9.4-2.1" class="pilcrow">¶</a>
+</li>
+          <li id="section-9.4-2.2">The hash function and serialization are public and deterministic.<a href="#section-9.4-2.2" class="pilcrow">¶</a>
+</li>
+          <li id="section-9.4-2.3">No field in the preimage is derived from an operator-controlled
+              system without disclosure.<a href="#section-9.4-2.3" class="pilcrow">¶</a>
+</li>
+        </ol>
+<p id="section-9.4-3">
+          An emitter that uses a non-public agent_id (e.g., a UUID assigned by
+          an internal sequencer and not disclosed) breaks the verifiability
+          property: a verifier cannot recompute action_ref without retrieving
+          the agent_id from the operator. Implementations MUST use stable,
+          publicly disclosed agent identifiers.<a href="#section-9.4-3" class="pilcrow">¶</a></p>
+<p id="section-9.4-4">
+          The operator-independence property can be satisfied in two distinct
+          ways, and implementers SHOULD state which one applies. In the
+          <strong>internally-consistent</strong> case, the verifier's own
+          recomputation of action_ref from the disclosed preimage fields is
+          sufficient: the digest either matches or it does not, and no party
+          external to the emitter and the verifier needs to attest to
+          anything. In the <strong>externally-witnessed</strong> case, byte
+          recomputation alone does not close the loop — the property also
+          depends on a step that could not have been skipped or backdated by
+          the operator, such as a timestamp or inclusion proof from a system
+          the operator does not control (e.g. an on-chain anchor, or a
+          SCITT receipt as described in
+          <a href="#interoperability" class="auto internal xref">Section 10</a>). This is not an additional
+          preimage field: it is a statement about how conformance to this
+          section is established, not about what is hashed.<a href="#section-9.4-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="interoperability">
+<section id="section-10">
+      <h2 id="name-interoperability-considerat">
+<a href="#section-10" class="section-number selfRef">10. </a><a href="#name-interoperability-considerat" class="section-name selfRef">Interoperability Considerations</a>
+      </h2>
+<p id="section-10-1">
+        action_ref is compatible with SCITT transparency logs
+        <span>[<a href="#RFC9943" class="cite xref">RFC9943</a>]</span> as an anchoring layer.
+        A SCITT-enabled system can treat action_ref as the payload hash
+        submitted to a Transparency Service: the resulting COSE Receipt
+        <span>[<a href="#RFC9942" class="cite xref">RFC9942</a>]</span> provides a signed inclusion proof over the
+        same content-addressed identifier defined in this specification.
+        The on-chain anchor described in <a href="#on-chain-anchor" class="auto internal xref">Section 10.1</a>
+        serves the same purpose: both bind a content-addressed identifier
+        to evidence of existence held by a system the operator does not
+        control. The on-chain variant does not require a Transparency
+        Service deployment. Hardware-backed endorsement is a property of
+        particular Transparency Service profiles, for example
+        <span>[<a href="#I-D.ietf-scitt-receipts-ccf-profile" class="cite xref">I-D.ietf-scitt-receipts-ccf-profile</a>]</span>, not of the
+        SCITT architecture itself. Neither mechanism shows that a set of
+        anchored actions is complete: each proves that one identifier
+        existed, not that no other action occurred.
+        Implementers operating within SCITT-enabled infrastructure
+        MAY substitute a SCITT receipt for the on-chain anchor without
+        changing the action_ref derivation algorithm or the receipt
+        envelope structure defined in this document.<a href="#section-10-1" class="pilcrow">¶</a></p>
+<div id="on-chain-anchor">
+<section id="section-10.1">
+        <h3 id="name-on-chain-anchoring-informat">
+<a href="#section-10.1" class="section-number selfRef">10.1. </a><a href="#name-on-chain-anchoring-informat" class="section-name selfRef">On-chain Anchoring (Informative)</a>
+        </h3>
+<p id="section-10.1-1">
+          The reference implementation <span>[<a href="#argentum-core" class="cite xref">argentum-core</a>]</span>
+          anchors action_ref values in AnchorRegistry, a permissionless
+          contract deployed with CREATE2 at
+          0x49fEcA52bC634a9Ab773226D16619deC547794aa (the same address on
+          Base, Arbitrum and Ink). A call to
+          <code>anchor(bytes32 ref)</code> (selector 0xeecdf927) emits
+          <code>Anchored(bytes32 indexed ref, address indexed anchoredBy,
+          uint256 timestamp)</code>, where ref is the action_ref digest.<a href="#section-10.1-1" class="pilcrow">¶</a></p>
+<p id="section-10.1-2">
+          A verifier can check such an anchor offline from three
+          artefacts: the block header, the transaction receipt, and the
+          receipt's Merkle-Patricia proof under the header's receiptsRoot.
+          The header hashes to the block hash, the proof places the receipt
+          in that block, and the receipt carries the Anchored event for the
+          digest. Whether the block is part of the chain's canonical history
+          is a single lookup by block hash against any node of that chain.
+          An independent verifier implementing this procedure is listed in
+          <a href="#implementation-status" class="auto internal xref">Section 11</a>.<a href="#section-10.1-2" class="pilcrow">¶</a></p>
+<p id="section-10.1-3">
+          The anchoredBy address records who submitted the anchor. It is
+          not an operator of the mechanism, and it is not evidence that the
+          submitter is independent of the emitter.<a href="#section-10.1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="interoperability-composed">
+<section id="section-10.2">
+        <h3 id="name-composed-attestation-across">
+<a href="#section-10.2" class="section-number selfRef">10.2. </a><a href="#name-composed-attestation-across" class="section-name selfRef">Composed Attestation Across Independent Producers</a>
+        </h3>
+<p id="section-10.2-1">
+          A worked example
+          (&lt;https://github.com/giskard09/composed-attestation-3leg-worked-example&gt;)
+          demonstrates three independently produced references that each
+          make a claim about the same example artifact, without any of
+          the three deriving from, depending on, or attesting to the
+          other two. Each leg is cited by the identifier its own producer
+          publishes:<a href="#section-10.2-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-10.2-2.1">
+            A transparent-execution leg (WYRIWE): a deployed Sepolia
+            contract at 0x3f98686f2D286A95435BA5916ec663219BE387Ad,
+            checkable via a read-only call to
+            <code>verify(bytes32 inputHash, bytes32 outputHash, bytes
+            calldata_, bytes context) returns (bool)</code>
+            (selector 0xfc2b4271) against input hash
+            cfacbfe211cf3be67a1d64a6499a2af0ae475e2c0965c2a42f969d243df2b6cd
+            — no transaction of its own; verification is a live contract
+            read, not an anchored write. A complete, reproducible
+            <code>eth_call</code> against this signature — full ABI-encoded
+            calldata and the expected return value — is given below.<a href="#section-10.2-2.1" class="pilcrow">¶</a>
+</li>
+          <li class="normal" id="section-10.2-2.2">
+            An action_ref leg (this specification): anchored on Base
+            mainnet, transaction
+            0x723b18539f186c1b6dd904d51f832f6d3d103c4daef2f8e29590ec8d10dda353,
+            block 49623528.<a href="#section-10.2-2.2" class="pilcrow">¶</a>
+</li>
+          <li class="normal" id="section-10.2-2.3">
+            An attested-decision leg (invinoveritas): ledger entry #236,
+            independently recomputable via the platform's
+            <code>POST /verify-proof</code> endpoint, which recomputes the
+            entry's Schnorr signature against its published key without
+            requiring trust in either other leg.<a href="#section-10.2-2.3" class="pilcrow">¶</a>
+</li>
+        </ul>
+<p id="section-10.2-3">
+          All three legs share the claim of covering the same example
+          artifact. This is a claim made by the worked example, not a
+          cryptographic cross-index between the three identifiers above:
+          no field in any one leg's preimage references either of the
+          other two, and none was constructed to. Accordingly, no leg
+          attests for another — each identifier is independently
+          checkable strictly on its own terms, and a verifier who trusts
+          only one producer can still fully verify that producer's leg
+          without relying on the other two.<a href="#section-10.2-3" class="pilcrow">¶</a></p>
+<p id="section-10.2-4">
+          The following is a complete, reproducible example of the leg 1
+          check: an <code>eth_call</code> to
+          0x3f98686f2D286A95435BA5916ec663219BE387Ad on Sepolia
+          (chain ID 11155111) invoking
+          <code>verify(bytes32,bytes32,bytes,bytes)</code> (selector
+          0xfc2b4271) with <code>inputHash</code> = the input hash above,
+          <code>outputHash</code> = the leg's actionCommitment
+          (5b5ec31c336cc8f95dc6d9025d1d008c6ed2cd5067b9c421b1d36927e230173a),
+          <code>calldata_</code> = the raw Multicall3
+          <code>aggregate3([])</code> call whose keccak-256 equals
+          <code>inputHash</code>, and <code>context</code> = the 224-byte
+          7-field PolicyAction preimage (chainId, domainId, agentId,
+          target, value, callDataHash, actionNonce) whose keccak-256
+          equals <code>outputHash</code>. The full ABI-encoded calldata for
+          this call, as a single concatenated <code>data</code> field
+          (516 bytes / 1032 hex characters total: a 4-byte selector
+          followed by 16 32-byte words), shown here split into
+          fixed-width words for readability:<a href="#section-10.2-4" class="pilcrow">¶</a></p>
+<div class="lang-text sourcecode" id="section-10.2-5">
+<pre>
+0xfc2b4271
+cfacbfe211cf3be67a1d64a6499a2af0ae475e2c0965c2a42f969d243df2b6cd
+5b5ec31c336cc8f95dc6d9025d1d008c6ed2cd5067b9c421b1d36927e230173a
+0000000000000000000000000000000000000000000000000000000000000080
+0000000000000000000000000000000000000000000000000000000000000100
+0000000000000000000000000000000000000000000000000000000000000044
+82ad56cb00000000000000000000000000000000000000000000000000000000
+0000002000000000000000000000000000000000000000000000000000000000
+0000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000e0
+0000000000000000000000000000000000000000000000000000000000aa36a7
+16079127bc55bd85d480837115b9bd82d26f03809c0bc4c6c80f7220836afad0
+000000000000000000000000000000000000000000000000000000000000d640
+000000000000000000000000ca11bde05977b3631167028862be2a173976ca11
+0000000000000000000000000000000000000000000000000000000000000000
+cfacbfe211cf3be67a1d64a6499a2af0ae475e2c0965c2a42f969d243df2b6cd
+0000000000000000000000000000000000000000000000000000000000000005
+</pre><a href="#section-10.2-5" class="pilcrow">¶</a>
+</div>
+<p id="section-10.2-6">
+          Expected return value: <code>true</code>. Passing any
+          <code>outputHash</code> other than the actionCommitment above
+          returns <code>false</code> — the contract is not constant-true.<a href="#section-10.2-6" class="pilcrow">¶</a></p>
+<p id="section-10.2-7">
+          The <code>context</code> blob, in order, is: chainId (0xaa36a7 =
+          11155111, Sepolia), domainId (32-byte digest
+          0x16079127bc55bd85d480837115b9bd82d26f03809c0bc4c6c80f7220836afad0),
+          agentId (0xd640 = 54848), target (0xcA11bde05977b3631167028862bE2a173976CA11,
+          Multicall3), value (0), callDataHash (equal to <code>inputHash</code>
+          above), actionNonce (5).<a href="#section-10.2-7" class="pilcrow">¶</a></p>
+<p id="section-10.2-8">
+          This composition is independently authored: each leg was
+          produced and is maintained by a different party, with no
+          shared control over derivation or timing. It is not offered as
+          mechanically proven independence — that would require a
+          property none of the three artifacts encodes — but as three
+          separately checkable claims about a common example, held
+          together only by the worked example's own assertion that they
+          concern the same artifact.<a href="#section-10.2-8" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="implementation-status">
+<section id="section-11">
+      <h2 id="name-implementation-status">
+<a href="#section-11" class="section-number selfRef">11. </a><a href="#name-implementation-status" class="section-name selfRef">Implementation Status</a>
+      </h2>
+<p id="section-11-1">
+        [Note to the RFC Editor: please remove this section before
+        publication, together with the reference to RFC 7942.]<a href="#section-11-1" class="pilcrow">¶</a></p>
+<p id="section-11-2">
+        This section records the status of known implementations of this
+        specification at the time of posting, following
+        <span>[<a href="#RFC7942" class="cite xref">RFC7942</a>]</span>. Listing an implementation is not an
+        endorsement of it, and the information was provided by, or taken
+        from public records of, the implementers. Unless stated otherwise,
+        each implementation covers the action-ref-v1-jcs-sha256 derivation
+        (<a href="#derivation" class="auto internal xref">Section 3</a>).<a href="#section-11-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-11-3.1">
+          <strong>argentum-core reference (Rama).</strong> verify.py and
+          verify.mjs in every conformance directory; stable tags
+          action-ref-v1.0 and action-ref-v2.0; AnchorRegistry anchoring
+          (<a href="#on-chain-anchor" class="auto internal xref">Section 10.1</a>). Apache-2.0.
+          &lt;https://github.com/giskard09/argentum-core&gt;<a href="#section-11-3.1" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="section-11-3.2">
+          <strong>action-ref-conformance (Composable Evidence Criteria lab,
+          LF Decentralized Trust).</strong> A GitHub Action that checks an
+          implementation against the frozen action-ref-v1-jcs-sha256
+          profile, with portable manifests of 13 v1 vectors and 6
+          domain-separated v2 vectors. Apache-2.0.
+          &lt;https://github.com/Composable-Evidence-Criteria/action-ref-conformance&gt;<a href="#section-11-3.2" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="section-11-3.3">
+          <strong>flareclaw-verifier (whawk46).</strong> Passes the pinned
+          conformance Action, verified run 30819828942 (2026-08-03), as
+          recorded in argentum-core PROVIDERS.md.<a href="#section-11-3.3" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="section-11-3.4">
+          <strong>Agent Passport System SDK (aeoess).</strong> The external
+          action-ref v1 helper (computeExternalActionRefV1) passes the eight
+          vectors of the pinned conformance Action in CI, run 37103514980
+          (2026-10-03). This covers that helper only.<a href="#section-11-3.4" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="section-11-3.5">
+          <strong>AgentGraph (agentgraph-co).</strong> An independent
+          author-set of seven vectors, reproduced with the rfc8785 Python
+          library and Node built-ins, including Vector 1 of
+          <a href="#test-vectors" class="auto internal xref">Appendix "Appendix A. Test Vectors"</a>.<a href="#section-11-3.5" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="section-11-3.6">
+          <strong>AgentAvow (Kenne Ives).</strong> A JCS comparison-semantics
+          author-set produced with the rfc8785 reference library
+          (canonicalisation identifier jcs-rfc8785-v1), independent of the
+          trail set in this repository.<a href="#section-11-3.6" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="section-11-3.7">
+          <strong>SafeAgent (azender1) and AgentOracle with AgentTrust
+          (TKCollective).</strong> Listed in argentum-core PROVIDERS.md as a
+          Verified Provider and a Declared Provider respectively, with
+          merged conformance sets and production trails since June 2026.<a href="#section-11-3.7" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="section-11-3.8">
+          <strong>AXES reference tooling (Magentix AI).</strong> An
+          independent recomputation, using the AXES RFC 8785 path, of the
+          13 v1 vectors (all verdicts and reject reasons) and the 6 v2
+          vectors (all verdicts) in the action-ref-conformance manifests,
+          run on 2026-10-23. Separately, an offline verifier for
+          AnchorRegistry anchors (profile axes:anchor_registry_bytes32@1)
+          that verifies the argentum-core anchor in Base mainnet block
+          48936665. Apache-2.0.
+          &lt;https://github.com/magentixai/axes&gt;. This entry was
+          contributed by Magentix AI, a committer of the Composable
+          Evidence Criteria lab.<a href="#section-11-3.8" class="pilcrow">¶</a>
+</li>
+      </ul>
+</section>
+</div>
+<div id="iana">
+<section id="section-12">
+      <h2 id="name-iana-considerations">
+<a href="#section-12" class="section-number selfRef">12. </a><a href="#name-iana-considerations" class="section-name selfRef">IANA Considerations</a>
+      </h2>
+<p id="section-12-1">
+        This document has no IANA actions.<a href="#section-12-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<section id="section-13">
+      <h2 id="name-references">
+<a href="#section-13" class="section-number selfRef">13. </a><a href="#name-references" class="section-name selfRef">References</a>
+      </h2>
+<section id="section-13.1">
+        <h3 id="name-normative-references">
+<a href="#section-13.1" class="section-number selfRef">13.1. </a><a href="#name-normative-references" class="section-name selfRef">Normative References</a>
+        </h3>
+<dl class="references">
+<dt id="RFC2119">[RFC2119]</dt>
+        <dd>
+<span class="refAuthor">Bradner, S.</span>, <span class="refTitle">"Key words for use in RFCs to Indicate Requirement Levels"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 2119</span>, <span class="seriesInfo">DOI 10.17487/RFC2119</span>, <time datetime="1997-03" class="refDate">March 1997</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc2119">https://www.rfc-editor.org/info/rfc2119</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8174">[RFC8174]</dt>
+        <dd>
+<span class="refAuthor">Leiba, B.</span>, <span class="refTitle">"Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 8174</span>, <span class="seriesInfo">DOI 10.17487/RFC8174</span>, <time datetime="2017-05" class="refDate">May 2017</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc8174">https://www.rfc-editor.org/info/rfc8174</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8785">[RFC8785]</dt>
+        <dd>
+<span class="refAuthor">Rundgren, A.</span>, <span class="refAuthor">Jordan, B.</span>, and <span class="refAuthor">S. Erdtman</span>, <span class="refTitle">"JSON Canonicalization Scheme (JCS)"</span>, <span class="seriesInfo">RFC 8785</span>, <span class="seriesInfo">DOI 10.17487/RFC8785</span>, <time datetime="2020-06" class="refDate">June 2020</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc8785">https://www.rfc-editor.org/info/rfc8785</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC3339">[RFC3339]</dt>
+      <dd>
+<span class="refAuthor">Klyne, G.</span> and <span class="refAuthor">C. Newman</span>, <span class="refTitle">"Date and Time on the Internet: Timestamps"</span>, <span class="seriesInfo">RFC 3339</span>, <span class="seriesInfo">DOI 10.17487/RFC3339</span>, <time datetime="2002-07" class="refDate">July 2002</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc3339">https://www.rfc-editor.org/info/rfc3339</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+</dl>
+</section>
+<section id="section-13.2">
+        <h3 id="name-informative-references">
+<a href="#section-13.2" class="section-number selfRef">13.2. </a><a href="#name-informative-references" class="section-name selfRef">Informative References</a>
+        </h3>
+<dl class="references">
+<dt id="argentum-core">[argentum-core]</dt>
+        <dd>
+<span class="refAuthor">Giskard, R.</span>, <span class="refTitle">"argentum-core: Mycelium Trails Reference Implementation and Conformance Suite"</span>, <time datetime="2026" class="refDate">2026</time>, <span>&lt;<a href="https://github.com/giskard09/argentum-core">https://github.com/giskard09/argentum-core</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="CTEF">[CTEF]</dt>
+        <dd>
+<span class="refAuthor">kenneives, K.</span>, <span class="refTitle">"Composable Trust Evaluation Framework (CTEF)"</span>, <time datetime="2026" class="refDate">2026</time>, <span>&lt;<a href="https://github.com/kenneives/agent-graph-toolkit">https://github.com/kenneives/agent-graph-toolkit</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="AgentGraph-EvidenceAnchor">[AgentGraph-EvidenceAnchor]</dt>
+        <dd>
+<span class="refAuthor">kenneives, K.</span>, <span class="refTitle">"evidence-anchor-static-analysis-v0: Static analysis conformance set for action_ref"</span>, <time datetime="2026-06" class="refDate">June 2026</time>, <span>&lt;<a href="https://github.com/agentgraph-co/agentgraph">https://github.com/agentgraph-co/agentgraph</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9943">[RFC9943]</dt>
+        <dd>
+<span class="refAuthor">Birkholz, H.</span>, <span class="refAuthor">Delignat-Lavaud, A.</span>, <span class="refAuthor">Fournet, C.</span>, <span class="refAuthor">Deshpande, Y.</span>, and <span class="refAuthor">S. Lasker</span>, <span class="refTitle">"An Architecture for Trustworthy and Transparent Digital Supply Chains"</span>, <span class="seriesInfo">RFC 9943</span>, <span class="seriesInfo">DOI 10.17487/RFC9943</span>, <time datetime="2026-06" class="refDate">June 2026</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc9943">https://www.rfc-editor.org/info/rfc9943</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9942">[RFC9942]</dt>
+        <dd>
+<span class="refAuthor">Steele, O.</span>, <span class="refAuthor">Birkholz, H.</span>, <span class="refAuthor">Delignat-Lavaud, A.</span>, and <span class="refAuthor">C. Fournet</span>, <span class="refTitle">"CBOR Object Signing and Encryption (COSE) Receipts"</span>, <span class="seriesInfo">RFC 9942</span>, <span class="seriesInfo">DOI 10.17487/RFC9942</span>, <time datetime="2026-06" class="refDate">June 2026</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc9942">https://www.rfc-editor.org/info/rfc9942</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7942">[RFC7942]</dt>
+        <dd>
+<span class="refAuthor">Sheffer, Y.</span> and <span class="refAuthor">A. Farrel</span>, <span class="refTitle">"Improving Awareness of Running Code: The Implementation Status Section"</span>, <span class="seriesInfo">BCP 205</span>, <span class="seriesInfo">RFC 7942</span>, <span class="seriesInfo">DOI 10.17487/RFC7942</span>, <time datetime="2016-07" class="refDate">July 2016</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc7942">https://www.rfc-editor.org/info/rfc7942</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="I-D.ietf-scitt-receipts-ccf-profile">[I-D.ietf-scitt-receipts-ccf-profile]</dt>
+      <dd>
+<span class="refAuthor">Birkholz, H.</span>, <span class="refAuthor">Delignat-Lavaud, A.</span>, <span class="refAuthor">Fournet, C.</span>, and <span class="refAuthor">A. Chamayou</span>, <span class="refTitle">"CCF Profile for COSE Receipts"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-scitt-receipts-ccf-profile-06</span>, <time datetime="2026-10-22" class="refDate">22 October 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/draft-ietf-scitt-receipts-ccf-profile/">https://datatracker.ietf.org/doc/draft-ietf-scitt-receipts-ccf-profile/</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+</dl>
+</section>
+</section>
+<div id="test-vectors">
+<section id="appendix-A">
+      <h2 id="name-appendix-a-test-vectors">
+<a href="#name-appendix-a-test-vectors" class="section-name selfRef">Appendix A. Test Vectors</a>
+      </h2>
+<p id="appendix-A-1">
+        All vectors are byte-verified in the conformance suite at
+        &lt;https://github.com/giskard09/argentum-core/tree/main/examples/conformance&gt;.<a href="#appendix-A-1" class="pilcrow">¶</a></p>
+<div id="vector-positive">
+<section id="appendix-A.1">
+        <h3 id="name-a1-positive-conformance-vec">
+<a href="#name-a1-positive-conformance-vec" class="section-name selfRef">A.1. Positive Conformance Vector</a>
+        </h3>
+<div class="alignLeft art-text artwork" id="appendix-A.1-1">
+<pre>
+Vector: nexus-oracle-signal (action-ref-v1-baseline)
+
+agent_id    = "nexus-agent-xa12.onrender.com"
+action_type = "oracle.signal"
+scope       = "BTC"
+timestamp   = "2025-05-18T11:40:31.000Z"
+
+JCS payload (UTF-8):
+{"action_type":"oracle.signal","agent_id":"nexus-agent-xa12.on
+render.com","scope":"BTC","timestamp":"2025-05-18T11:40:31.000Z"}
+
+action_ref:
+fdd7f810499f06be24355ca8e2bfb8c4b965cc80c838f41fa074683443d89f5a
+</pre><a href="#appendix-A.1-1" class="pilcrow">¶</a>
+</div>
+</section>
+</div>
+<div id="vector-negative-timestamp">
+<section id="appendix-A.2">
+        <h3 id="name-a2-negative-conformance-vec">
+<a href="#name-a2-negative-conformance-vec" class="section-name selfRef">A.2. Negative Conformance Vector — Epoch-Integer Timestamp</a>
+        </h3>
+<div class="alignLeft art-text artwork" id="appendix-A.2-1">
+<pre>
+Vector: neg-b01-epoch-integer (recompute-drift-v1)
+
+Same action as A.1, but timestamp hashed as epoch-ms integer
+instead of RFC 3339 string. Produces a different digest.
+
+Non-conformant preimage (epoch-ms as integer — DO NOT USE):
+{"action_type":"oracle.signal","agent_id":"nexus-agent-xa12.on
+render.com","scope":"BTC","timestamp":1747568431000}
+
+A verifier recomputing from the RFC 3339 string will obtain
+a different hash and correctly reject the receipt.
+</pre><a href="#appendix-A.2-1" class="pilcrow">¶</a>
+</div>
+</section>
+</div>
+<div id="vector-authorization-ref">
+<section id="appendix-A.3">
+        <h3 id="name-a3-authorization_ref-vector">
+<a href="#name-a3-authorization_ref-vector" class="section-name selfRef">A.3. authorization_ref Vector</a>
+        </h3>
+<div class="alignLeft art-text artwork" id="appendix-A.3-1">
+<pre>
+Vector: step_2b_authorization_ref (guardrail-provider-v1)
+
+action_ref       = "104812928eb50e0e1ad28f379f8ade03ea0f479ac7abd1b
+                    bf9205e9317665c7f"
+authorized_scope = "autogen:guardrail"
+decision_ts      = 1749513600000
+policy_id        = "guardrail-policy-v1"
+
+JCS payload:
+{"action_ref":"104812928eb50e0e1ad28f379f8ade03ea0f479ac7abd1bbf920
+5e9317665c7f","authorized_scope":"autogen:guardrail","decision_ts":
+1749513600000,"policy_id":"guardrail-policy-v1"}
+
+authorization_ref:
+b9f8494a4a5943687d105769556be2963271e37f2216d2afd279e5b260261327
+</pre><a href="#appendix-A.3-1" class="pilcrow">¶</a>
+</div>
+</section>
+</div>
+</section>
+</div>
+<div id="external-conformance">
+<section id="appendix-B">
+      <h2 id="name-appendix-a4-external-confor">
+<a href="#name-appendix-a4-external-confor" class="section-name selfRef">Appendix A.4. External Conformance Set — evidence-anchor-static-analysis-v0</a>
+      </h2>
+<p id="appendix-B-1">
+        Contributed by: AgentGraph (agentgraph-co/agentgraph, kenneives).<a href="#appendix-B-1" class="pilcrow">¶</a></p>
+<p id="appendix-B-2">
+        This conformance set anchors static analysis findings from an
+        agent-ecosystem endpoint scan (35,689 endpoints; June 2026) to
+        verifiable action_ref identifiers. It contains 4 byte-verified vectors
+        covering three invariants:<a href="#appendix-B-2" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="appendix-B-3">
+        <li id="appendix-B-3.1">
+          <strong>Scan-attest anchor:</strong> a scan.attest action from a
+          did:web scanner agent produces a stable action_ref independently
+          recomputable by any verifier without registry access.<a href="#appendix-B-3.1" class="pilcrow">¶</a>
+</li>
+        <li id="appendix-B-3.2">
+          <strong>Cross-implementation byte match:</strong> the spec's
+          Appendix A Vector 1 (nexus-oracle-signal,
+          fdd7f810…) reproduces byte-for-byte using the rfc8785 Python
+          library and Node built-ins — two independent implementation
+          lineages agreeing on the same digest.<a href="#appendix-B-3.2" class="pilcrow">¶</a>
+</li>
+        <li id="appendix-B-3.3">
+          <strong>Live ecosystem seam:</strong> the payment-charge vector's
+          action_ref is identical to the one carried in AgentGraph's v0.4
+          pre-execution-verdict-v0 verifier fixture, where it is byte-matched
+          across the haroldmalikfrimpong-ops / evidai / azender1 payment
+          seam — this derivation is exercised live, not only specified.<a href="#appendix-B-3.3" class="pilcrow">¶</a>
+</li>
+      </ol>
+<p id="appendix-B-4">
+        All 4 vectors are byte-verified in the conformance directory
+        at &lt;https://github.com/agentgraph-co/agentgraph&gt;.
+        The set was contributed under AGT PR #21
+        (evidence-anchor-static-analysis-v0, merged 2026-06-24).<a href="#appendix-B-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="field-mapping">
+<section id="appendix-C">
+      <h2 id="name-appendix-b-field-mapping-fo">
+<a href="#name-appendix-b-field-mapping-fo" class="section-name selfRef">Appendix B. Field Mapping for Existing Systems</a>
+      </h2>
+<p id="appendix-C-1">
+        Systems that have adopted action_ref derivation or compatible primitives:<a href="#appendix-C-1" class="pilcrow">¶</a></p>
+<table class="center" id="table-3">
+        <caption><a href="#table-3" class="selfRef">Table 3</a></caption>
+<thead>
+          <tr>
+            <th class="text-left" rowspan="1" colspan="1">System</th>
+            <th class="text-left" rowspan="1" colspan="1">agent_id mapping</th>
+            <th class="text-left" rowspan="1" colspan="1">action_type mapping</th>
+            <th class="text-left" rowspan="1" colspan="1">Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">SafeAgent (azender1)</td>
+            <td class="text-left" rowspan="1" colspan="1">agent identifier</td>
+            <td class="text-left" rowspan="1" colspan="1">claim type</td>
+            <td class="text-left" rowspan="1" colspan="1">Joint spec argentum-core #7</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Graph Advocate (PaulieB14)</td>
+            <td class="text-left" rowspan="1" colspan="1">wallet address (EIP-55)</td>
+            <td class="text-left" rowspan="1" colspan="1">counterparty event type</td>
+            <td class="text-left" rowspan="1" colspan="1">counterparty-ref-v1, production</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">AgentOracle/AgentTrust (TKCollective)</td>
+            <td class="text-left" rowspan="1" colspan="1">issuer DID</td>
+            <td class="text-left" rowspan="1" colspan="1">oracle action type</td>
+            <td class="text-left" rowspan="1" colspan="1">Two issuers, cross-issuer property</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">CTEF (<span>[<a href="#CTEF" class="cite xref">CTEF</a>]</span>)</td>
+            <td class="text-left" rowspan="1" colspan="1">agent graph node ID</td>
+            <td class="text-left" rowspan="1" colspan="1">evaluation action</td>
+            <td class="text-left" rowspan="1" colspan="1">action_ref REQUIRED in v0.4</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">presidio-x402 (vstantch)</td>
+            <td class="text-left" rowspan="1" colspan="1">screening agent ID</td>
+            <td class="text-left" rowspan="1" colspan="1">presidio:x402.screen</td>
+            <td class="text-left" rowspan="1" colspan="1">PII screening, composition</td>
+          </tr>
+        </tbody>
+      </table>
+</section>
+</div>
+<div id="authors-addresses">
+<section id="appendix-D">
+      <h2 id="name-authors-addresses">
+<a href="#name-authors-addresses" class="section-name selfRef">Authors' Addresses</a>
+      </h2>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Pablo Etcheverry</span></div>
+<div dir="auto" class="left"><span class="org">Rama</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:playplay2736@gmail.com" class="email">playplay2736@gmail.com</a>
+</div>
+<div class="url">
+<span>URI:</span>
+<a href="https://github.com/giskard09/argentum-core" class="url">https://github.com/giskard09/argentum-core</a>
+</div>
+</address>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Kenne Ives</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:kennethives@gmail.com" class="email">kennethives@gmail.com</a>
+</div>
+</address>
+</section>
+</div>
+<script>const toc = document.getElementById("toc");
+toc.querySelector("h2").addEventListener("click", e => {
+  toc.classList.toggle("active");
+});
+toc.querySelector("nav").addEventListener("click", e => {
+  toc.classList.remove("active");
+});
+</script>
+</body>
+</html>
