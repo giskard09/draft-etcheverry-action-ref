@@ -1527,10 +1527,9 @@ li > p:last-of-type:only-child {
 <aside id="section-1-5">
         <p id="section-1-5.1">
           This figure covers static analysis only; it does not cover runtime
-          or behavioral risk. Methodology: AgentGraph EvidenceAnchor static
-          analysis conformance set
-          <span>[<a href="#AgentGraph-EvidenceAnchor" class="cite xref">AgentGraph-EvidenceAnchor</a>]</span>; figure as corrected
-          2026-10-21, superseding the June 2026 snapshot.<a href="#section-1-5.1" class="pilcrow">¶</a></p>
+          or behavioral risk. Methodology: AgentAvow public scan catalog,
+          static analysis only, snapshot 2026-10-21 (OWASP MCP Top 10 #65;
+          recomputable via the public flagged-stat endpoint).<a href="#section-1-5.1" class="pilcrow">¶</a></p>
 </aside>
 <p id="section-1-6">
         This document covers:<a href="#section-1-6" class="pilcrow">¶</a></p>
@@ -2322,6 +2321,15 @@ authorization_ref = SHA-256(JCS({
         MAY substitute a SCITT receipt for the on-chain anchor without
         changing the action_ref derivation algorithm or the receipt
         envelope structure defined in this document.<a href="#section-10-1" class="pilcrow">¶</a></p>
+<p id="section-10-2">
+        <span>[<a href="#I-D.pidlisnyi-aps" class="cite xref">I-D.pidlisnyi-aps</a>]</span>, Section 5.2, defines an external
+        action reference ("action-ref-v1-jcs-sha256") over the same four
+        fields and the same SHA-256 over RFC 8785 construction as
+        action_ref, used to correlate APS-governed actions with records
+        from outside an APS deployment. APS identifies its own governed
+        actions with a different, wider reference (its Section 5.1), and
+        its external form is not used to identify APS decisions or
+        receipts.<a href="#section-10-2" class="pilcrow">¶</a></p>
 <div id="on-chain-anchor">
 <section id="section-10.1">
         <h3 id="name-on-chain-anchoring-informat">
@@ -2613,8 +2621,12 @@ cfacbfe211cf3be67a1d64a6499a2af0ae475e2c0965c2a42f969d243df2b6cd
 <span class="refAuthor">Sheffer, Y.</span> and <span class="refAuthor">A. Farrel</span>, <span class="refTitle">"Improving Awareness of Running Code: The Implementation Status Section"</span>, <span class="seriesInfo">BCP 205</span>, <span class="seriesInfo">RFC 7942</span>, <span class="seriesInfo">DOI 10.17487/RFC7942</span>, <time datetime="2016-07" class="refDate">July 2016</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc7942">https://www.rfc-editor.org/info/rfc7942</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="I-D.ietf-scitt-receipts-ccf-profile">[I-D.ietf-scitt-receipts-ccf-profile]</dt>
-      <dd>
+        <dd>
 <span class="refAuthor">Birkholz, H.</span>, <span class="refAuthor">Delignat-Lavaud, A.</span>, <span class="refAuthor">Fournet, C.</span>, and <span class="refAuthor">A. Chamayou</span>, <span class="refTitle">"CCF Profile for COSE Receipts"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-scitt-receipts-ccf-profile-06</span>, <time datetime="2026-10-22" class="refDate">22 October 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/draft-ietf-scitt-receipts-ccf-profile/">https://datatracker.ietf.org/doc/draft-ietf-scitt-receipts-ccf-profile/</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="I-D.pidlisnyi-aps">[I-D.pidlisnyi-aps]</dt>
+      <dd>
+<span class="refAuthor">Pidlisnyi, T.</span>, <span class="refTitle">"Agent Passport System (APS): Verifiable Authority, Lifecycle, Enforcement, and Evidence for AI Agents"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-pidlisnyi-aps-04</span>, <time datetime="2026-09-28" class="refDate">28 September 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-pidlisnyi-aps-04">https://datatracker.ietf.org/doc/html/draft-pidlisnyi-aps-04</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 </dl>
 </section>

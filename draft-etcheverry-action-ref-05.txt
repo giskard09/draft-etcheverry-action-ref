@@ -101,11 +101,11 @@ Table of Contents
      10.1.  On-chain Anchoring (Informative) . . . . . . . . . . . .  16
      10.2.  Composed Attestation Across Independent Producers  . . .  16
    11. Implementation Status . . . . . . . . . . . . . . . . . . . .  18
-   12. IANA Considerations . . . . . . . . . . . . . . . . . . . . .  19
-   13. References  . . . . . . . . . . . . . . . . . . . . . . . . .  19
-     13.1.  Normative References . . . . . . . . . . . . . . . . . .  19
+   12. IANA Considerations . . . . . . . . . . . . . . . . . . . . .  20
+   13. References  . . . . . . . . . . . . . . . . . . . . . . . . .  20
+     13.1.  Normative References . . . . . . . . . . . . . . . . . .  20
      13.2.  Informative References . . . . . . . . . . . . . . . . .  20
-   Appendix A.  Test Vectors . . . . . . . . . . . . . . . . . . . .  21
+   Appendix A.  Test Vectors . . . . . . . . . . . . . . . . . . . .  22
 
 
 
@@ -114,13 +114,13 @@ Etcheverry & Ives         Expires 26 April 2027                 [Page 2]
 Internet-Draft              Action Reference                October 2026
 
 
-     A.1.  Positive Conformance Vector . . . . . . . . . . . . . . .  21
-     A.2.  Negative Conformance Vector — Epoch-Integer Timestamp . .  21
-     A.3. authorization_ref Vector . . . . . . . . . . . . . . . . .  21
+     A.1.  Positive Conformance Vector . . . . . . . . . . . . . . .  22
+     A.2.  Negative Conformance Vector — Epoch-Integer Timestamp . .  22
+     A.3. authorization_ref Vector . . . . . . . . . . . . . . . . .  22
    Appendix A.4.  External Conformance Set —
-           evidence-anchor-static-analysis-v0  . . . . . . . . . . .  22
-   Appendix B.  Field Mapping for Existing Systems . . . . . . . . .  23
-   Authors' Addresses  . . . . . . . . . . . . . . . . . . . . . . .  23
+           evidence-anchor-static-analysis-v0  . . . . . . . . . . .  23
+   Appendix B.  Field Mapping for Existing Systems . . . . . . . . .  24
+   Authors' Addresses  . . . . . . . . . . . . . . . . . . . . . . .  24
 
 1.  Introduction
 
@@ -154,14 +154,14 @@ Internet-Draft              Action Reference                October 2026
    the scanner operator.
 
       |  This figure covers static analysis only; it does not cover
-      |  runtime or behavioral risk.  Methodology: AgentGraph
-      |  EvidenceAnchor static analysis conformance set
-      |  [AgentGraph-EvidenceAnchor]; figure as corrected 2026-10-21,
-      |  superseding the June 2026 snapshot.
+      |  runtime or behavioral risk.  Methodology: AgentAvow public scan
+      |  catalog, static analysis only, snapshot 2026-10-21 (OWASP MCP
+      |  Top 10 #65; recomputable via the public flagged-stat endpoint).
 
    This document covers:
 
    *  The derivation algorithm (SHA-256 over JCS-canonical JSON).
+
 
 
 
@@ -842,6 +842,14 @@ Etcheverry & Ives         Expires 26 April 2027                [Page 15]
 Internet-Draft              Action Reference                October 2026
 
 
+   [I-D.pidlisnyi-aps], Section 5.2, defines an external action
+   reference ("action-ref-v1-jcs-sha256") over the same four fields and
+   the same SHA-256 over RFC 8785 construction as action_ref, used to
+   correlate APS-governed actions with records from outside an APS
+   deployment.  APS identifies its own governed actions with a
+   different, wider reference (its Section 5.1), and its external form
+   is not used to identify APS decisions or receipts.
+
 10.1.  On-chain Anchoring (Informative)
 
    The reference implementation [argentum-core] anchors action_ref
@@ -874,6 +882,22 @@ Internet-Draft              Action Reference                October 2026
    the other two.  Each leg is cited by the identifier its own producer
    publishes:
 
+
+
+
+
+
+
+
+
+
+
+
+Etcheverry & Ives         Expires 26 April 2027                [Page 16]
+
+Internet-Draft              Action Reference                October 2026
+
+
    *  A transparent-execution leg (WYRIWE): a deployed Sepolia contract
       at 0x3f98686f2D286A95435BA5916ec663219BE387Ad, checkable via a
       read-only call to verify(bytes32 inputHash, bytes32 outputHash,
@@ -889,14 +913,6 @@ Internet-Draft              Action Reference                October 2026
       transaction
       0x723b18539f186c1b6dd904d51f832f6d3d103c4daef2f8e29590ec8d10dda353,
       block 49623528.
-
-
-
-
-Etcheverry & Ives         Expires 26 April 2027                [Page 16]
-
-Internet-Draft              Action Reference                October 2026
-
 
    *  An attested-decision leg (invinoveritas): ledger entry #236,
       independently recomputable via the platform's POST /verify-proof
@@ -927,6 +943,17 @@ Internet-Draft              Action Reference                October 2026
    16 32-byte words), shown here split into fixed-width words for
    readability:
 
+
+
+
+
+
+
+Etcheverry & Ives         Expires 26 April 2027                [Page 17]
+
+Internet-Draft              Action Reference                October 2026
+
+
    0xfc2b4271
    cfacbfe211cf3be67a1d64a6499a2af0ae475e2c0965c2a42f969d243df2b6cd
    5b5ec31c336cc8f95dc6d9025d1d008c6ed2cd5067b9c421b1d36927e230173a
@@ -944,15 +971,6 @@ Internet-Draft              Action Reference                October 2026
    0000000000000000000000000000000000000000000000000000000000000000
    cfacbfe211cf3be67a1d64a6499a2af0ae475e2c0965c2a42f969d243df2b6cd
    0000000000000000000000000000000000000000000000000000000000000005
-
-
-
-
-
-Etcheverry & Ives         Expires 26 April 2027                [Page 17]
-
-Internet-Draft              Action Reference                October 2026
-
 
    Expected return value: true.  Passing any outputHash other than the
    actionCommitment above returns false — the contract is not constant-
@@ -985,6 +1003,13 @@ Internet-Draft              Action Reference                October 2026
    Unless stated otherwise, each implementation covers the action-ref-
    v1-jcs-sha256 derivation (Section 3).
 
+
+
+Etcheverry & Ives         Expires 26 April 2027                [Page 18]
+
+Internet-Draft              Action Reference                October 2026
+
+
    *  *argentum-core reference (Rama).* verify.py and verify.mjs in
       every conformance directory; stable tags action-ref-v1.0 and
       action-ref-v2.0; AnchorRegistry anchoring (Section 10.1).  Apache-
@@ -1000,15 +1025,6 @@ Internet-Draft              Action Reference                October 2026
    *  *flareclaw-verifier (whawk46).* Passes the pinned conformance
       Action, verified run 30819828942 (2026-08-03), as recorded in
       argentum-core PROVIDERS.md.
-
-
-
-
-
-Etcheverry & Ives         Expires 26 April 2027                [Page 18]
-
-Internet-Draft              Action Reference                October 2026
-
 
    *  *Agent Passport System SDK (aeoess).* The external action-ref v1
       helper (computeExternalActionRefV1) passes the eight vectors of
@@ -1032,6 +1048,23 @@ Internet-Draft              Action Reference                October 2026
       (self-certified by TKCollective; see https://tanilo.io/trust for
       disclosure of the verification limits on some historical
       receipts).
+
+
+
+
+
+
+
+
+
+
+
+
+
+Etcheverry & Ives         Expires 26 April 2027                [Page 19]
+
+Internet-Draft              Action Reference                October 2026
+
 
    *  *AXES reference tooling (Magentix AI).* An independent
       recomputation, using the AXES RFC 8785 path, of the 13 v1 vectors
@@ -1057,15 +1090,6 @@ Internet-Draft              Action Reference                October 2026
               DOI 10.17487/RFC2119, March 1997,
               <https://www.rfc-editor.org/info/rfc2119>.
 
-
-
-
-
-Etcheverry & Ives         Expires 26 April 2027                [Page 19]
-
-Internet-Draft              Action Reference                October 2026
-
-
    [RFC8174]  Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC
               2119 Key Words", BCP 14, RFC 8174, DOI 10.17487/RFC8174,
               May 2017, <https://www.rfc-editor.org/info/rfc8174>.
@@ -1085,6 +1109,18 @@ Internet-Draft              Action Reference                October 2026
               Giskard, R., "argentum-core: Mycelium Trails Reference
               Implementation and Conformance Suite", 2026,
               <https://github.com/giskard09/argentum-core>.
+
+
+
+
+
+
+
+
+Etcheverry & Ives         Expires 26 April 2027                [Page 20]
+
+Internet-Draft              Action Reference                October 2026
+
 
    [CTEF]     kenneives, K., "Composable Trust Evidence Format", Also
               available at
@@ -1114,14 +1150,6 @@ Internet-Draft              Action Reference                October 2026
               RFC 7942, DOI 10.17487/RFC7942, July 2016,
               <https://www.rfc-editor.org/info/rfc7942>.
 
-
-
-
-Etcheverry & Ives         Expires 26 April 2027                [Page 20]
-
-Internet-Draft              Action Reference                October 2026
-
-
    [I-D.ietf-scitt-receipts-ccf-profile]
               Birkholz, H., Delignat-Lavaud, A., Fournet, C., and A.
               Chamayou, "CCF Profile for COSE Receipts", Work in
@@ -1129,6 +1157,26 @@ Internet-Draft              Action Reference                October 2026
               profile-06, 22 October 2026,
               <https://datatracker.ietf.org/doc/draft-ietf-scitt-
               receipts-ccf-profile/>.
+
+   [I-D.pidlisnyi-aps]
+              Pidlisnyi, T., "Agent Passport System (APS): Verifiable
+              Authority, Lifecycle, Enforcement, and Evidence for AI
+              Agents", Work in Progress, Internet-Draft, draft-
+              pidlisnyi-aps-04, 28 September 2026,
+              <https://datatracker.ietf.org/doc/html/draft-pidlisnyi-
+              aps-04>.
+
+
+
+
+
+
+
+
+Etcheverry & Ives         Expires 26 April 2027                [Page 21]
+
+Internet-Draft              Action Reference                October 2026
+
 
 Appendix A.  Test Vectors
 
@@ -1173,7 +1221,15 @@ A.3. authorization_ref Vector
 
 
 
-Etcheverry & Ives         Expires 26 April 2027                [Page 21]
+
+
+
+
+
+
+
+
+Etcheverry & Ives         Expires 26 April 2027                [Page 22]
 
 Internet-Draft              Action Reference                October 2026
 
@@ -1229,7 +1285,7 @@ analysis-v0
 
 
 
-Etcheverry & Ives         Expires 26 April 2027                [Page 22]
+Etcheverry & Ives         Expires 26 April 2027                [Page 23]
 
 Internet-Draft              Action Reference                October 2026
 
@@ -1285,4 +1341,4 @@ Authors' Addresses
 
 
 
-Etcheverry & Ives         Expires 26 April 2027                [Page 23]
+Etcheverry & Ives         Expires 26 April 2027                [Page 24]

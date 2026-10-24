@@ -120,10 +120,9 @@
       <aside>
         <t>
           This figure covers static analysis only; it does not cover runtime
-          or behavioral risk. Methodology: AgentGraph EvidenceAnchor static
-          analysis conformance set
-          <xref target="AgentGraph-EvidenceAnchor"/>; figure as corrected
-          2026-10-21, superseding the June 2026 snapshot.
+          or behavioral risk. Methodology: AgentAvow public scan catalog,
+          static analysis only, snapshot 2026-10-21 (OWASP MCP Top 10 #65;
+          recomputable via the public flagged-stat endpoint).
         </t>
       </aside>
       <t>
@@ -830,6 +829,16 @@ authorization_ref = SHA-256(JCS({
         changing the action_ref derivation algorithm or the receipt
         envelope structure defined in this document.
       </t>
+      <t>
+        <xref target="I-D.pidlisnyi-aps"/>, Section 5.2, defines an external
+        action reference ("action-ref-v1-jcs-sha256") over the same four
+        fields and the same SHA-256 over RFC 8785 construction as
+        action_ref, used to correlate APS-governed actions with records
+        from outside an APS deployment. APS identifies its own governed
+        actions with a different, wider reference (its Section 5.1), and
+        its external form is not used to identify APS decisions or
+        receipts.
+      </t>
 
       <section anchor="on-chain-anchor" numbered="true" toc="default">
         <name>On-chain Anchoring (Informative)</name>
@@ -1195,6 +1204,15 @@ cfacbfe211cf3be67a1d64a6499a2af0ae475e2c0965c2a42f969d243df2b6cd
             <date year="2026" month="October" day="22"/>
           </front>
           <seriesInfo name="Internet-Draft" value="draft-ietf-scitt-receipts-ccf-profile-06"/>
+        </reference>
+
+        <reference anchor="I-D.pidlisnyi-aps" target="https://datatracker.ietf.org/doc/html/draft-pidlisnyi-aps-04">
+          <front>
+            <title>Agent Passport System (APS): Verifiable Authority, Lifecycle, Enforcement, and Evidence for AI Agents</title>
+            <author initials="T." surname="Pidlisnyi" fullname="T. Pidlisnyi"/>
+            <date year="2026" month="September" day="28"/>
+          </front>
+          <seriesInfo name="Internet-Draft" value="draft-pidlisnyi-aps-04"/>
         </reference>
 
       </references>
